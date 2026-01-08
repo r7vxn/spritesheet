@@ -18,20 +18,20 @@ namespace spritesheet
 
         RunBody playerBody;
 
-        KeyboardState keyboardState;
-        int rows, columns;
-        int frame; // The frame number (column) in the sequence to draw
-        int frames; // The number of frames for each direction, usually the same as columns
-        int directionRow; // The row number containing the frames for the current direction
-        int leftRow, rightRow, upRow, downRow; // Row number of directional set of frames
-        int width; // The width of each frame
-        int height; // The height of each frame
-        float speed = 5f; // How fast the character sprite will travel
-        float time; // Used to store elapsed time
-        float frameSpeed; // Sets how fast player frames transition
-        Vector2 playerLocation; // Stored the location of the players collision sprite
-        Vector2 playerDirection; // The directional vector of the player
-        Rectangle playerCollisionRect, playerDrawRect;
+        //KeyboardState keyboardState;
+        //int rows, columns;
+        //int frame; // The frame number (column) in the sequence to draw
+        //int frames; // The number of frames for each direction, usually the same as columns
+        //int directionRow; // The row number containing the frames for the current direction
+        //int leftRow, rightRow, upRow, downRow; // Row number of directional set of frames
+        //int width; // The width of each frame
+        //int height; // The height of each frame
+        //float speed = 5f; // How fast the character sprite will travel
+        //float time; // Used to store elapsed time
+        //float frameSpeed; // Sets how fast player frames transition
+        //Vector2 playerLocation; // Stored the location of the players collision sprite
+        //Vector2 playerDirection; // The directional vector of the player
+        //Rectangle playerCollisionRect, playerDrawRect;
 
         public Game1()
         {
@@ -53,12 +53,12 @@ namespace spritesheet
             //directionRow = downRow; // Player will start facing down
             //width = runbodySpritesheet.Width / columns;
             //height = runbodySpritesheet.Height / rows;
-            playerLocation = new Vector2(20, 20);
-            playerCollisionRect = new Rectangle(80, 60, 40, 70);
-            playerDrawRect = new Rectangle(20, 20, 150, 150);
-            UpdatePlayerRects();
+            //playerLocation = new Vector2(20, 20);
+            //playerCollisionRect = new Rectangle(80, 60, 40, 70);
+            //playerDrawRect = new Rectangle(20, 20, 150, 150);
+            //UpdatePlayerRects();
 
-            playerBody = new RunBody(runbodySpritesheet);
+            playerBody = new RunBody(runbodySpritesheet, runheadSpritesheet, runswordSpritesheet, runswordbackSpritesheet, runshadowSpritesheet);
 
             //time = 0.0f;
             //frameSpeed = 0.1f;
@@ -86,21 +86,23 @@ namespace spritesheet
 
             // TODO: Add your update logic here
 
-            time += (float)gameTime.ElapsedGameTime.TotalSeconds;
-            if (time > frameSpeed && playerDirection != Vector2.Zero)
-            {
-                time = 0f;
-                frame += 1;
-                if (frame >= frames)
-                    frame = 0;
-            }
-            keyboardState = Keyboard.GetState();
+            
 
-            SetPlayerDirection();
-            playerLocation += playerDirection * speed;
-            UpdatePlayerRects();
+            //time += (float)gameTime.ElapsedGameTime.TotalSeconds;
+            //if (time > frameSpeed && playerDirection != Vector2.Zero)
+            //{
+            //    time = 0f;
+            //    frame += 1;
+            //    if (frame >= frames)
+            //        frame = 0;
+            //}
+            //keyboardState = Keyboard.GetState();
 
-            playerBody.Update(gameTime, playerDirection);
+            //SetPlayerDirection();
+            //playerLocation += playerDirection * speed;
+            //UpdatePlayerRects();
+
+            playerBody.Update(gameTime);
 
             base.Update(gameTime);
         }
@@ -111,57 +113,58 @@ namespace spritesheet
 
             // TODO: Add your drawing code here
             _spriteBatch.Begin();
-            _spriteBatch.Draw(rectangleTexture, playerCollisionRect, Color.Black * 0.3f);
-            _spriteBatch.Draw(runbodySpritesheet, playerDrawRect, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
-            _spriteBatch.Draw(runheadSpritesheet, playerDrawRect, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
-            _spriteBatch.Draw(runswordSpritesheet, playerDrawRect, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
-            _spriteBatch.Draw(runswordbackSpritesheet, playerDrawRect, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
-            _spriteBatch.Draw(runshadowSpritesheet, playerDrawRect, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
+            playerBody.Draw(_spriteBatch);
+            //_spriteBatch.Draw(rectangleTexture, playerCollisionRect, Color.Black * 0.3f);
+            //_spriteBatch.Draw(runbodySpritesheet, playerDrawRect, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
+            //_spriteBatch.Draw(runheadSpritesheet, playerDrawRect, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
+            //_spriteBatch.Draw(runswordSpritesheet, playerDrawRect, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
+            //_spriteBatch.Draw(runswordbackSpritesheet, playerDrawRect, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
+            //_spriteBatch.Draw(runshadowSpritesheet, playerDrawRect, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
             _spriteBatch.End();
             base.Draw(gameTime);
         }
-        public void UpdatePlayerRects()
-        {
-            playerCollisionRect.Location = playerLocation.ToPoint();
-            playerDrawRect.X = playerCollisionRect.X - 55;
-            playerDrawRect.Y = playerCollisionRect.Y - 40;
-        }
-        private void SetPlayerDirection()
-        {
-            playerDirection = Vector2.Zero;
+        //public void UpdatePlayerRects()
+        //{
+        //    playerCollisionRect.Location = playerLocation.ToPoint();
+        //    playerDrawRect.X = playerCollisionRect.X - 55;
+        //    playerDrawRect.Y = playerCollisionRect.Y - 40;
+        //}
+        //private void SetPlayerDirection()
+        //{
+        //    playerDirection = Vector2.Zero;
 
 
-            if (keyboardState.IsKeyDown(Keys.A))
-                playerDirection.X += -1;
+        //    if (keyboardState.IsKeyDown(Keys.A))
+        //        playerDirection.X += -1;
 
-            if (keyboardState.IsKeyDown(Keys.D))
-                playerDirection.X += 1;
+        //    if (keyboardState.IsKeyDown(Keys.D))
+        //        playerDirection.X += 1;
 
-            if (keyboardState.IsKeyDown(Keys.W))
-                playerDirection.Y += -1;
+        //    if (keyboardState.IsKeyDown(Keys.W))
+        //        playerDirection.Y += -1;
 
-            if (keyboardState.IsKeyDown(Keys.S))
-                playerDirection.Y += 1;
+        //    if (keyboardState.IsKeyDown(Keys.S))
+        //        playerDirection.Y += 1;
 
 
-            if (playerDirection != Vector2.Zero)
-            {
-                playerDirection.Normalize();
-                if (playerDirection.X < 0) // Moving left
-                    directionRow = leftRow;
+        //    if (playerDirection != Vector2.Zero)
+        //    {
+        //        playerDirection.Normalize();
+        //        if (playerDirection.X < 0) // Moving left
+        //            directionRow = leftRow;
 
-                else if (playerDirection.X > 0) // Moving right
-                    directionRow = rightRow;
+        //        else if (playerDirection.X > 0) // Moving right
+        //            directionRow = rightRow;
 
-                else if (playerDirection.Y < 0) // Moving up
-                    directionRow = upRow;
+        //        else if (playerDirection.Y < 0) // Moving up
+        //            directionRow = upRow;
 
-                else
-                    directionRow = downRow;
+        //        else
+        //            directionRow = downRow;
 
-            }
-            else
-                frame = 0;
-        }
+        //    }
+        //    else
+        //        frame = 0;
+        //}
     }
 }
