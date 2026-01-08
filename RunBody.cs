@@ -21,25 +21,26 @@ namespace spritesheet
 
         Rectangle playerCollisionRect, playerDrawRect;
 
-
         KeyboardState keyboardState;
         Vector2 playerDirection;
         Vector2 playerLocation;
 
 
         Texture2D runbodySpritesheet, runheadSpritesheet, runswordSpritesheet, runswordbackSpritesheet, runshadowSpritesheet;
+        Texture2D rectangleTexture;
 
         float time; // Used to store elapsed time
         float frameSpeed; // Sets how fast player frames transition
         float speed = 5f;
 
-        public RunBody(Texture2D runbodySpritesheet, Texture2D runheadSpritesheet, Texture2D runswordSpritesheet, Texture2D runswordbackSpritesheet, Texture2D runshadowSpritesheet)
+        public RunBody(Texture2D runbodySpritesheet, Texture2D runheadSpritesheet, Texture2D runswordSpritesheet, Texture2D runswordbackSpritesheet, Texture2D runshadowSpritesheet, Texture2D rectangleTexture)
         {
             this.runbodySpritesheet = runbodySpritesheet;
             this.runheadSpritesheet = runheadSpritesheet;
             this.runswordSpritesheet = runswordSpritesheet;
             this.runswordbackSpritesheet = runswordbackSpritesheet;
             this.runshadowSpritesheet = runshadowSpritesheet;
+            this.rectangleTexture = rectangleTexture;
 
             playerLocation = new Vector2(20, 20);
             playerCollisionRect = new Rectangle(80, 60, 40, 70);
@@ -82,6 +83,7 @@ namespace spritesheet
             spriteBatch.Draw(runswordSpritesheet, playerDrawRect, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
             spriteBatch.Draw(runswordbackSpritesheet, playerDrawRect, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
             spriteBatch.Draw(runshadowSpritesheet, playerDrawRect, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
+            spriteBatch.Draw(rectangleTexture, playerCollisionRect, Color.Black * 0.3f);
         }
         private void SetPlayerDirection()
         {

@@ -14,24 +14,18 @@ namespace spritesheet
         Texture2D runshadowSpritesheet;
         Texture2D runswordSpritesheet;
         Texture2D runswordbackSpritesheet;
+
         Texture2D rectangleTexture;
 
-        RunBody playerBody;
+        Texture2D runattackbodySpritesheet;
+        Texture2D runattackheadSpritesheet;
+        Texture2D runattackshadowSpritesheet;
+        Texture2D runattackswingSpritesheet;
+        Texture2D runattackswordSpritesheet;
+        Texture2D runattackswordbackSpritesheet;
+        
 
-        //KeyboardState keyboardState;
-        //int rows, columns;
-        //int frame; // The frame number (column) in the sequence to draw
-        //int frames; // The number of frames for each direction, usually the same as columns
-        //int directionRow; // The row number containing the frames for the current direction
-        //int leftRow, rightRow, upRow, downRow; // Row number of directional set of frames
-        //int width; // The width of each frame
-        //int height; // The height of each frame
-        //float speed = 5f; // How fast the character sprite will travel
-        //float time; // Used to store elapsed time
-        //float frameSpeed; // Sets how fast player frames transition
-        //Vector2 playerLocation; // Stored the location of the players collision sprite
-        //Vector2 playerDirection; // The directional vector of the player
-        //Rectangle playerCollisionRect, playerDrawRect;
+        RunBody playerBody;
 
         public Game1()
         {
@@ -43,27 +37,11 @@ namespace spritesheet
         protected override void Initialize()
         {
             // TODO: Add your initialization logic here
-            //columns = 8;
-            //rows = 4;
-            //upRow = 0;
-            //leftRow = 1;
-            //rightRow = 2;
-            //downRow = 3;
+
             base.Initialize();
-            //directionRow = downRow; // Player will start facing down
-            //width = runbodySpritesheet.Width / columns;
-            //height = runbodySpritesheet.Height / rows;
-            //playerLocation = new Vector2(20, 20);
-            //playerCollisionRect = new Rectangle(80, 60, 40, 70);
-            //playerDrawRect = new Rectangle(20, 20, 150, 150);
-            //UpdatePlayerRects();
 
-            playerBody = new RunBody(runbodySpritesheet, runheadSpritesheet, runswordSpritesheet, runswordbackSpritesheet, runshadowSpritesheet);
+            playerBody = new RunBody(runbodySpritesheet, runheadSpritesheet, runswordSpritesheet, runswordbackSpritesheet, runshadowSpritesheet, rectangleTexture);
 
-            //time = 0.0f;
-            //frameSpeed = 0.1f;
-            //frames = 8;
-            //frame = 0;
         }
 
         protected override void LoadContent()
@@ -76,7 +54,16 @@ namespace spritesheet
             runshadowSpritesheet = Content.Load<Texture2D>("Swordsman_lvl1_Run_shadow");
             runswordSpritesheet = Content.Load<Texture2D>("Swordsman_lvl1_Run_sword");
             runswordbackSpritesheet = Content.Load<Texture2D>("Swordsman_lvl1_Run_sword_back");
+
             rectangleTexture = Content.Load<Texture2D>("rectangle");
+
+            runattackbodySpritesheet = Content.Load<Texture2D>("Swordsman_lvl1_Run_Attack_body");
+            runattackheadSpritesheet = Content.Load<Texture2D>("Swordsman_lvl1_Attack_head");
+            runattackshadowSpritesheet = Content.Load<Texture2D>("Swordsman_lvl1_Attack_shadow");
+            runattackswingSpritesheet = Content.Load<Texture2D>("Swordsman_lvl1_Attack_swing");
+            runattackswordSpritesheet = Content.Load<Texture2D>("Swordsman_lvl1_Attack_sword");
+            runattackswordbackSpritesheet = Content.Load<Texture2D>("Swordsman_lvl1_Attack_sword_back");
+
         }
 
         protected override void Update(GameTime gameTime)
@@ -85,22 +72,6 @@ namespace spritesheet
                 Exit();
 
             // TODO: Add your update logic here
-
-            
-
-            //time += (float)gameTime.ElapsedGameTime.TotalSeconds;
-            //if (time > frameSpeed && playerDirection != Vector2.Zero)
-            //{
-            //    time = 0f;
-            //    frame += 1;
-            //    if (frame >= frames)
-            //        frame = 0;
-            //}
-            //keyboardState = Keyboard.GetState();
-
-            //SetPlayerDirection();
-            //playerLocation += playerDirection * speed;
-            //UpdatePlayerRects();
 
             playerBody.Update(gameTime);
 
@@ -113,58 +84,11 @@ namespace spritesheet
 
             // TODO: Add your drawing code here
             _spriteBatch.Begin();
+
             playerBody.Draw(_spriteBatch);
-            //_spriteBatch.Draw(rectangleTexture, playerCollisionRect, Color.Black * 0.3f);
-            //_spriteBatch.Draw(runbodySpritesheet, playerDrawRect, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
-            //_spriteBatch.Draw(runheadSpritesheet, playerDrawRect, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
-            //_spriteBatch.Draw(runswordSpritesheet, playerDrawRect, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
-            //_spriteBatch.Draw(runswordbackSpritesheet, playerDrawRect, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
-            //_spriteBatch.Draw(runshadowSpritesheet, playerDrawRect, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
+
             _spriteBatch.End();
             base.Draw(gameTime);
         }
-        //public void UpdatePlayerRects()
-        //{
-        //    playerCollisionRect.Location = playerLocation.ToPoint();
-        //    playerDrawRect.X = playerCollisionRect.X - 55;
-        //    playerDrawRect.Y = playerCollisionRect.Y - 40;
-        //}
-        //private void SetPlayerDirection()
-        //{
-        //    playerDirection = Vector2.Zero;
-
-
-        //    if (keyboardState.IsKeyDown(Keys.A))
-        //        playerDirection.X += -1;
-
-        //    if (keyboardState.IsKeyDown(Keys.D))
-        //        playerDirection.X += 1;
-
-        //    if (keyboardState.IsKeyDown(Keys.W))
-        //        playerDirection.Y += -1;
-
-        //    if (keyboardState.IsKeyDown(Keys.S))
-        //        playerDirection.Y += 1;
-
-
-        //    if (playerDirection != Vector2.Zero)
-        //    {
-        //        playerDirection.Normalize();
-        //        if (playerDirection.X < 0) // Moving left
-        //            directionRow = leftRow;
-
-        //        else if (playerDirection.X > 0) // Moving right
-        //            directionRow = rightRow;
-
-        //        else if (playerDirection.Y < 0) // Moving up
-        //            directionRow = upRow;
-
-        //        else
-        //            directionRow = downRow;
-
-        //    }
-        //    else
-        //        frame = 0;
-        //}
     }
 }
