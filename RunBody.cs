@@ -11,13 +11,7 @@ namespace spritesheet
 {
     public class RunBody
     {
-        int rows, columns;
-        int frame; // The frame number (column) in the sequence to draw
-        int frames; // The number of frames for each direction, usually the same as columns
-        int directionRow; // The row number containing the frames for the current direction
-        int leftRow, rightRow, upRow, downRow; // Row number of directional set of frames
-        int width; // The width of each frame
-        int height; // The height of each frame
+        
 
         Rectangle playerCollisionRect, playerDrawRect;
 
