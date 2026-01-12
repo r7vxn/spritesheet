@@ -1,7 +1,7 @@
-﻿using Microsoft.Xna.Framework.Graphics;
+﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -29,9 +29,9 @@ namespace spritesheet
             Idle = 1,
             Running = 2
         }
-        public SpritesheetDraw(List<List<Texture2D>>wholelist)
+        public SpritesheetDraw(List<Texture2D>wholelist)
         {
-            this.spritesheets = wholelist[(int)currentAnimation];
+            this.spritesheets = wholelist;
 
             columns = 8;
             rows = 4;
@@ -47,9 +47,6 @@ namespace spritesheet
         }
         public void Draw(SpriteBatch spriteBatch, Rectangle rectangle)
         {
-            
-
-
             foreach (var item in spritesheets)
             {
                 spriteBatch.Draw(item, rectangle, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
