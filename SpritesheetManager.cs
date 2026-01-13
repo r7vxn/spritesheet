@@ -18,6 +18,7 @@ namespace spritesheet
         int directionRow;
         int leftRow, rightRow, downRow, upRow;
         float frame;
+        float speed = 5f;
 
         public Rectangle Rectangle
         {
@@ -37,7 +38,7 @@ namespace spritesheet
                 spritesheet.Draw(spriteBatch, rectangle, directionRow);
             }
         }
-        public void SetPlayerDirection(KeyboardState keyboardState, Vector2 playerDirection, int directionRow, int leftRow, int rightRow, int downRow, int upRow, float frame)
+        public void SetPlayerDirection(Rectangle rectangle, KeyboardState keyboardState, Vector2 playerDirection, int directionRow, int leftRow, int rightRow, int downRow, int upRow, float frame)
         {
             
             this.keyboardState = keyboardState;
@@ -48,9 +49,8 @@ namespace spritesheet
             this.downRow = downRow;
             this.upRow = upRow;
             this.frame = frame;
+            this.rectangle = rectangle;
 
-
-            rectangle = new Rectangle(20, 20, 150, 150);
             this.playerDirection = new Vector2(20, 20);
 
             keyboardState = Keyboard.GetState();
@@ -87,6 +87,10 @@ namespace spritesheet
             }
             else
                 frame = 0;
+        }
+
+        public void Update (GameTime gameTime)
+        {
         }
     }
 }

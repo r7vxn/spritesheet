@@ -39,7 +39,7 @@ namespace spritesheet
 
         //RunBody playerBody;
 
-        Rectangle playerCollisionRect, playerDrawRect;
+        Rectangle playerCollisionRect, playerDrawRect, rectangle;
 
         KeyboardState keyboardState;
         Vector2 playerDirection;
@@ -78,7 +78,7 @@ namespace spritesheet
 
             
 
-
+            rectangle = new Rectangle(20, 20, 150, 150);
             playerLocation = new Vector2(20, 20);
             playerCollisionRect = new Rectangle(80, 60, 40, 70);
             //playerDrawRect = new Rectangle(20, 20, 150, 150);
@@ -135,6 +135,7 @@ namespace spritesheet
             List<List<Texture2D>> wholelist = new List<List<Texture2D>>();
             wholelist.Add(Idlespritesheets);
             spritesheetManager = new SpritesheetManager(wholelist);
+            spritesheetDraw = new SpritesheetDraw(wholelist);
             rectangleTexture = Content.Load<Texture2D>("rectangle");
 
 
@@ -148,7 +149,9 @@ namespace spritesheet
 
             // TODO: Add your update logic here
 
-            spritesheetManager.SetPlayerDirection(keyboardState: keyboardState, playerDirection: playerDirection, directionRow: directionRow, leftRow: leftRow, rightRow: rightRow, downRow: downRow, upRow: upRow, frame: frame);
+            spritesheetManager.SetPlayerDirection(rectangle: rectangle, keyboardState: keyboardState, playerDirection: playerDirection, directionRow: directionRow, leftRow: leftRow, rightRow: rightRow, downRow: downRow, upRow: upRow, frame: frame);
+            playerLocation += playerDirection * speed;
+            UpdatePlayerRects();
             //playerBody.Update(gameTime);
 
             base.Update(gameTime);
