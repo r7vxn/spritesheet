@@ -59,6 +59,10 @@ namespace spritesheet
         float speed = 5f;
 
         SpritesheetDraw spritesheetDraw;
+
+        SpritesheetManager spritesheetManager;
+
+        List<Texture2D> Idlespritesheets;
         public Game1()
         {
             _graphics = new GraphicsDeviceManager(this);
@@ -72,12 +76,12 @@ namespace spritesheet
 
             base.Initialize();
 
+            
 
 
             playerLocation = new Vector2(20, 20);
             playerCollisionRect = new Rectangle(80, 60, 40, 70);
-            playerDrawRect = new Rectangle(20, 20, 150, 150);
-            UpdatePlayerRects();
+            //playerDrawRect = new Rectangle(20, 20, 150, 150);
             columns = 8;
             rows = 4;
             upRow = 0;
@@ -128,6 +132,9 @@ namespace spritesheet
 
             };
 
+            List<List<Texture2D>> wholelist = new List<List<Texture2D>>();
+            wholelist.Add(Idlespritesheets);
+            spritesheetManager = new SpritesheetManager(wholelist);
             rectangleTexture = Content.Load<Texture2D>("rectangle");
 
 
@@ -141,6 +148,7 @@ namespace spritesheet
 
             // TODO: Add your update logic here
 
+            spritesheetManager.SetPlayerDirection(keyboardState: keyboardState, playerDirection: playerDirection, directionRow: directionRow, leftRow: leftRow, rightRow: rightRow, downRow: downRow, upRow: upRow, frame: frame);
             //playerBody.Update(gameTime);
 
             base.Update(gameTime);
@@ -153,15 +161,17 @@ namespace spritesheet
             // TODO: Add your drawing code here
             _spriteBatch.Begin();
 
-            //playerBody.Draw(_spriteBatch);
-            spritesheetDraw.Draw(_spriteBatch, );
+            playerDrawRect = spritesheetManager.Rectangle;
+            spritesheetDraw.Draw(_spriteBatch, playerDrawRect, directionRow);
+
             _spriteBatch.End();
             base.Draw(gameTime);
         }
 
         public void GrandList()
         {
-            //List<List<Texture2D>>wholelist = new List<Texture2D>();
+            //List<List<Texture2D>> wholelist = new List<List<Texture2D>>();
+            //wholelist.Add(Idlespritesheets);
             //List<Texture2D> currentList = wholelist[0];
             //Texture2D currentTexture = currentList[0];
 

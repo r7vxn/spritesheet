@@ -16,11 +16,12 @@ namespace spritesheet
         int frame; // The frame number (column) in the sequence to draw
         int frames; // The number of frames for each direction, usually the same as columns
         int directionRow; // The row number containing the frames for the current direction
-        int leftRow, rightRow, upRow, downRow; // Row number of directional set of frames
+        //int leftRow, rightRow, upRow, downRow; // Row number of directional set of frames
         int width; // The width of each frame
         int height; // The height of each frame
 
-        List<Texture2D> spritesheets;
+        List<List<Texture2D>> spritesheets;
+        List<Texture2D> spritesheet;
 
         Animation currentAnimation;
         enum Animation
@@ -29,25 +30,27 @@ namespace spritesheet
             Idle = 1,
             Running = 2
         }
-        public SpritesheetDraw(List<Texture2D>wholelist)
+        public SpritesheetDraw(List<List<Texture2D>>wholelist)
         {
             this.spritesheets = wholelist;
+            this.spritesheet = wholelist[0];
 
             columns = 8;
             rows = 4;
-            upRow = 0;
-            leftRow = 1;
-            rightRow = 2;
-            downRow = 3;
-            directionRow = downRow; // Player will start facing down
-            width = spritesheets[0].Width / columns;
-            height = spritesheets[0].Height / rows;
+            //upRow = 3;
+            //leftRow = 1;
+            //rightRow = 2;
+            //downRow = 0;
+            //directionRow = downRow; // Player will start facing down
+            width = spritesheet[0].Width / columns;
+            height = spritesheet[0].Height / rows;
             frames = 8;
             frame = 0;
         }
-        public void Draw(SpriteBatch spriteBatch, Rectangle rectangle)
+        public void Draw(SpriteBatch spriteBatch, Rectangle rectangle, int directionRow)
         {
-            foreach (var item in spritesheets)
+            this.directionRow = directionRow;
+            foreach (var item in spritesheet)
             {
                 spriteBatch.Draw(item, rectangle, new Rectangle(frame * width, directionRow * height, width, height), Color.White);
 

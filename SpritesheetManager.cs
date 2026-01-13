@@ -24,15 +24,17 @@ namespace spritesheet
             get => rectangle; 
             set => rectangle = value;
         }
-        public SpritesheetManager(List<Texture2D>Idlespritesheets)
+        public SpritesheetManager(List<List<Texture2D>> wholelist)
         {
-            spritesheetDraw.Add(new SpritesheetDraw(Idlespritesheets));
+            spritesheetDraw = new List<SpritesheetDraw>();
+            spritesheetDraw.Add(new SpritesheetDraw(wholelist));
+
         }
         public void Draw(SpriteBatch spriteBatch)
         {
             foreach (var spritesheet in spritesheetDraw)
             {
-                spritesheet.Draw(spriteBatch, rectangle);
+                spritesheet.Draw(spriteBatch, rectangle, directionRow);
             }
         }
         public void SetPlayerDirection(KeyboardState keyboardState, Vector2 playerDirection, int directionRow, int leftRow, int rightRow, int downRow, int upRow, float frame)
@@ -46,6 +48,7 @@ namespace spritesheet
             this.downRow = downRow;
             this.upRow = upRow;
             this.frame = frame;
+
 
             rectangle = new Rectangle(20, 20, 150, 150);
             this.playerDirection = new Vector2(20, 20);
@@ -77,10 +80,9 @@ namespace spritesheet
                     directionRow = rightRow;
 
                 else if (playerDirection.Y < 0) // Moving up
-                    directionRow = downRow;
-
-                else
                     directionRow = upRow;
+                else
+                    directionRow = downRow;
 
             }
             else
