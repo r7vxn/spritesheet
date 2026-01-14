@@ -11,7 +11,7 @@ namespace spritesheet
 {
     public class SpritesheetManager
     {
-        List<SpritesheetDraw> spritesheetDraws;
+        List<SpritesheetDraw> spritesheetDraw;
         Rectangle rectangle;
         KeyboardState keyboardState;
         Vector2 playerDirection;
@@ -27,15 +27,16 @@ namespace spritesheet
         }
         public SpritesheetManager(List<List<Texture2D>> wholelist)
         {
-            spritesheetDraws = new List<SpritesheetDraw>();
-            spritesheetDraws.Add(new SpritesheetDraw(wholelist));
-            rectangle = new Rectangle(20, 20, 150, 150);
-
+            spritesheetDraw = new List<SpritesheetDraw>();
+            spritesheetDraw.Add(new SpritesheetDraw(wholelist));
 
         }
-        public void Draw(SpriteBatch spriteBatch, int index)
+        public void Draw(SpriteBatch spriteBatch)
         {
-            spritesheetDraws[index].Draw(spriteBatch, rectangle, directionRow);
+            foreach (var spritesheet in spritesheetDraw)
+            {
+                spritesheet.Draw(spriteBatch, rectangle, directionRow);
+            }
         }
         public void SetPlayerDirection(Rectangle rectangle, KeyboardState keyboardState, Vector2 playerDirection, int directionRow, int leftRow, int rightRow, int downRow, int upRow, float frame)
         {

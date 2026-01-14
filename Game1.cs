@@ -55,7 +55,8 @@ namespace spritesheet
         int frames;
         int frame;
 
-        
+        float time; // Used to store elapsed time
+        float frameSpeed; // Sets how fast player frames transition
         float speed = 5f;
 
         SpritesheetDraw spritesheetDraw;
@@ -117,6 +118,7 @@ namespace spritesheet
 <<<<<<< HEAD
             
 
+            rectangle = new Rectangle(20, 20, 150, 150);
             playerLocation = new Vector2(20, 20);
             playerCollisionRect = new Rectangle(80, 60, 40, 70);
             //playerDrawRect = new Rectangle(20, 20, 150, 150);
@@ -129,7 +131,8 @@ namespace spritesheet
             directionRow = downRow; // Player will start facing down
             //width = runbodySpritesheet.Width / columns;
             //height = runbodySpritesheet.Height / rows;
-
+            time = 0.0f;
+            frameSpeed = 0.1f;
             frames = 8;
             frame = 0;
 
@@ -238,8 +241,8 @@ namespace spritesheet
             _spriteBatch.Begin();
 <<<<<<< HEAD
 
-            //playerDrawRect = spritesheetManager.Rectangle;
-            spritesheetDraw.Draw(_spriteBatch, new Rectangle(100, 100, 100, 100), directionRow);
+            playerDrawRect = spritesheetManager.Rectangle;
+            spritesheetDraw.Draw(_spriteBatch, playerDrawRect, directionRow);
 
             _spriteBatch.End();
             base.Draw(gameTime);
