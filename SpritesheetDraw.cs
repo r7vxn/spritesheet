@@ -19,37 +19,33 @@ namespace spritesheet
         //int leftRow, rightRow, upRow, downRow; // Row number of directional set of frames
         int width; // The width of each frame
         int height; // The height of each frame
-
+        Animation state;
         List<List<Texture2D>> spritesheets;
         List<Texture2D> spritesheet;
-
-        Animation currentAnimation;
-        enum Animation
-        {
-            None = 0,
-            Idle = 1,
-            Running = 2
-        }
+        
         public SpritesheetDraw(List<List<Texture2D>>wholelist)
         {
             this.spritesheets = wholelist;
-            this.spritesheet = wholelist[0];
+            this.spritesheet = wholelist[(int)Animation.Idle];
 
-            columns = 8;
+            columns = 12;
             rows = 4;
             //upRow = 3;
             //leftRow = 1;
             //rightRow = 2;
             //downRow = 0;
             //directionRow = downRow; // Player will start facing down
-            width = spritesheet[0].Width / columns;
-            height = spritesheet[0].Height / rows;
+            width = spritesheet[(int)Animation.Idle].Width / columns;
+            height = spritesheet[(int)Animation.Idle].Height / rows;
             frames = 8;
-            frame = 0;
         }
-        public void Draw(SpriteBatch spriteBatch, Rectangle rectangle, int directionRow)
+        public void Draw(SpriteBatch spriteBatch, Rectangle rectangle, int directionRow, Animation state, int frame)
         {
+            this.frame = frame;
+
+            this.state = state;
             this.directionRow = directionRow;
+            this.spritesheet = spritesheets[(int)state];
             foreach (var item in spritesheet)
             {
                 spriteBatch.Draw(item, rectangle, new Rectangle(frame * width, directionRow * height, width, height), Color.White);

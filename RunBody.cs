@@ -7,13 +7,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-/*
+
 namespace spritesheet
 {
-public class RunBody
-{
 
-
+    public class RunBody
+    {
+    } }
+/*
 
 
 
@@ -24,7 +25,6 @@ public class RunBody
 
     public RunBody(Texture2D runbodySpritesheet, Texture2D runheadSpritesheet, Texture2D runswordSpritesheet, Texture2D runswordbackSpritesheet, Texture2D runshadowSpritesheet, Texture2D rectangleTexture)
     {
-<<<<<<< HEAD
         this.runbodySpritesheet = runbodySpritesheet;
         this.runheadSpritesheet = runheadSpritesheet;
         this.runswordSpritesheet = runswordSpritesheet;
@@ -46,7 +46,6 @@ public class RunBody
             time = 0f;
             frame += 1;
             if (frame >= frames)
-=======
         int rows, columns;
         int frame; // The frame number (column) in the sequence to draw
         int frames; // The number of frames for each direction, usually the same as columns
@@ -210,4 +209,4 @@ public class RunBody
 
 }
 }
-*/
+ */   

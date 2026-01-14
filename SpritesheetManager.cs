@@ -19,6 +19,10 @@ namespace spritesheet
         int leftRow, rightRow, downRow, upRow;
         float frame;
         float speed = 5f;
+        float time = 0.0f;
+        float frameSpeed = 0.1f;
+        int frames = 8;
+
 
         public Rectangle Rectangle
         {
@@ -31,11 +35,13 @@ namespace spritesheet
             spritesheetDraw.Add(new SpritesheetDraw(wholelist));
 
         }
-        public void Draw(SpriteBatch spriteBatch)
+        public void Draw(SpriteBatch spriteBatch, Animation state, int frame)
         {
+            this.frame = frame;
+
             foreach (var spritesheet in spritesheetDraw)
             {
-                spritesheet.Draw(spriteBatch, rectangle, directionRow);
+                spritesheet.Draw(spriteBatch, rectangle, directionRow, state, frame);
             }
         }
         public void SetPlayerDirection(Rectangle rectangle, KeyboardState keyboardState, Vector2 playerDirection, int directionRow, int leftRow, int rightRow, int downRow, int upRow, float frame)
@@ -89,8 +95,19 @@ namespace spritesheet
                 frame = 0;
         }
 
-        public void Update (GameTime gameTime)
+        public void Update (GameTime gameTime, int frame)
         {
+            this.frame = frame;
+            time += (float)gameTime.ElapsedGameTime.TotalSeconds;
+            if (time > frameSpeed && playerDirection != Vector2.Zero)
+            {
+                time = 0f;
+                frame += 1;
+                if (frame >= frames)
+                    frame = 0;
+            }
+            keyboardState = Keyboard.GetState();
+
         }
     }
 }
