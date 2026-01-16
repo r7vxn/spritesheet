@@ -7,90 +7,31 @@ namespace spritesheet
 {
     public enum Animation
     {
-        None = 2,
         Idle = 0,
         Running = 1
     }
 
     public class Game1 : Game
     {
-
-        //make a class for drawing spritesheet, figure out how to make it apply 
-        //make a class to determine what spritesheet to give to the class
-        //make a class for the collision
-        //make a class to always update the location and move
-        
         private GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
 
-        //Texture2D runbodySpritesheet;
-        //Texture2D runheadSpritesheet;
-        //Texture2D runshadowSpritesheet;
-        //Texture2D runswordSpritesheet;
-        //Texture2D runswordbackSpritesheet;
+        private Texture2D rectangleTexture;
+        private Rectangle playerCollisionRect, playerDrawRect;
 
-        Texture2D rectangleTexture;
+        private Vector2 playerLocation;
+        private Vector2 playerDirection;
+        private int directionRow, leftRow, rightRow, upRow, downRow;
+        private Animation state;
+        private int frame;
+        private float time, frameSpeed = 0.1f, speed = 5f;
+        private int frames;
 
-        //Texture2D runattackbodySpritesheet;
-        //Texture2D runattackheadSpritesheet;
-        //Texture2D runattackshadowSpritesheet;
-        //Texture2D runattackswingSpritesheet;
-        //Texture2D runattackswordSpritesheet;
-        //Texture2D runattackswordbackSpritesheet;
+        private SpritesheetDraw spritesheetDraw;
+        private SpritesheetManager spritesheetManager;
 
-        //Texture2D idlebodySpritesheet;
-        //Texture2D idleheadSpritesheet;
-        //Texture2D idleshadowSpritesheet;
-        //Texture2D idleswordspritesheet;
-        //Texture2D idleswordbackspritesheet;
-
-        //RunBody playerBody;
-
-        Rectangle playerCollisionRect, playerDrawRect, rectangle;
-
-        KeyboardState keyboardState;
-        Vector2 playerDirection;
-        Vector2 playerLocation;
-
-        int columns;
-        int rows;
-        int upRow, leftRow, rightRow, downRow;
-        int directionRow;
-        int width;
-        int height;
-        int frames;
-        int frame;
-
-        float time; // Used to store elapsed time
-        float frameSpeed; // Sets how fast player frames transition
-        float speed = 5f;
-
-        SpritesheetDraw spritesheetDraw;
-
-        SpritesheetManager spritesheetManager;
-
-        List<Texture2D> Idlespritesheets;
-        Texture2D runbodySpritesheet;
-        Texture2D runheadSpritesheet;
-        Texture2D runshadowSpritesheet;
-        Texture2D runswordSpritesheet;
-        Texture2D runswordbackSpritesheet;
-
-        Animation state;
-        //KeyboardState keyboardState;
-        //int rows, columns;
-        //int frame; // The frame number (column) in the sequence to draw
-        //int frames; // The number of frames for each direction, usually the same as columns
-        //int directionRow; // The row number containing the frames for the current direction
-        //int leftRow, rightRow, upRow, downRow; // Row number of directional set of frames
-        //int width; // The width of each frame
-        //int height; // The height of each frame
-        //float speed = 5f; // How fast the character sprite will travel
-        //float time; // Used to store elapsed time
-        //float frameSpeed; // Sets how fast player frames transition
-        //Vector2 playerLocation; // Stored the location of the players collision sprite
-        //Vector2 playerDirection; // The directional vector of the player
-        //Rectangle playerCollisionRect, playerDrawRect;
+        private Dictionary<Animation, Dictionary<int, int>> framesPerDirection;
+        private Dictionary<Animation, int> rowsPerState;
 
         public Game1()
         {
@@ -101,47 +42,55 @@ namespace spritesheet
 
         protected override void Initialize()
         {
-            // TODO: Add your initialization logic here
-           
             base.Initialize();
 
-
-
-            Animation state = new Animation();
-            state = 0;
-            rectangle = new Rectangle(20, 20, 150, 150);
+            state = Animation.Idle;
             playerLocation = new Vector2(20, 20);
             playerCollisionRect = new Rectangle(80, 60, 40, 70);
-            //playerDrawRect = new Rectangle(20, 20, 150, 150);
-            columns = 8;
-            rows = 4;
-            upRow = 0;
+            playerDrawRect = new Rectangle(20, 20, 150, 150);
             leftRow = 1;
             rightRow = 2;
+            upRow = 0;
             downRow = 3;
-            directionRow = downRow; // Player will start facing down
-            //width = runbodySpritesheet.Width / columns;
-            //height = runbodySpritesheet.Height / rows;
-            time = 0.0f;
-            frameSpeed = 0.1f;
-            frames = 8;
-            frame = 0;
+            directionRow = downRow;
 
-            //playerBody = new RunBody(runbodySpritesheet, runheadSpritesheet, runswordSpritesheet, runswordbackSpritesheet, runshadowSpritesheet, rectangleTexture);
+            framesPerDirection = new Dictionary<Animation, Dictionary<int, int>>();
+            framesPerDirection[Animation.Idle] = new Dictionary<int, int>()
+            {
+                { downRow, 4 },
+                { leftRow, 12 },
+                { rightRow, 12 },
+                { upRow, 12 }
+            };
+            framesPerDirection[Animation.Running] = new Dictionary<int, int>()
+            {
+                { downRow, 8 },
+                { leftRow, 8 },
+                { rightRow, 8 },
+                { upRow, 8 }
+            };
 
-
-            //time = 0.0f;
-            //frameSpeed = 0.1f;
-            //frames = 8;
-            //frame = 0;
+            rowsPerState = new Dictionary<Animation, int>()
+            {
+                { Animation.Idle, 4 },
+                { Animation.Running, 4 }
+            };
         }
 
         protected override void LoadContent()
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-            // TODO: use this.Content to load your game content here
-            List<Texture2D> Runningspritesheets = new()
+            var Idlespritesheets = new List<Texture2D>()
+            {
+                Content.Load<Texture2D>("Swordsman_lvl1_Idle_body"),
+                Content.Load<Texture2D>("Swordsman_lvl1_Idle_head"),
+                Content.Load<Texture2D>("Swordsman_lvl1_Idle_shadow"),
+                Content.Load<Texture2D>("Swordsman_lvl1_Idle_sword"),
+                Content.Load<Texture2D>("Swordsman_lvl1_Idle_sword_back")
+            };
+
+            var Runningspritesheets = new List<Texture2D>()
             {
                 Content.Load<Texture2D>("Swordsman_lvl1_Run_body"),
                 Content.Load<Texture2D>("Swordsman_lvl1_Run_head"),
@@ -149,27 +98,11 @@ namespace spritesheet
                 Content.Load<Texture2D>("Swordsman_lvl1_Run_sword"),
                 Content.Load<Texture2D>("Swordsman_lvl1_Run_sword_back")
             };
-            List<Texture2D> Runattackspritesheets = new()
-            {
-                Content.Load<Texture2D>("Swordsman_lvl1_Run_Attack_body"),
-                Content.Load<Texture2D>("Swordsman_lvl1_Run_Attack_head"),
-                Content.Load<Texture2D>("Swordsman_lvl1_Run_Attack_shadow"),
-                Content.Load<Texture2D>("Swordsman_lvl1_Run_Attack_swing"),
-                Content.Load<Texture2D>("Swordsman_lvl1_Run_Attack_sword"),
-                Content.Load<Texture2D>("Swordsman_lvl1_Run_Attack_sword_back")
-            };
-            List<Texture2D> Idlespritesheets = new()
-            {
-                Content.Load<Texture2D>("Swordsman_lvl1_Idle_body"),
-                Content.Load<Texture2D>("Swordsman_lvl1_Idle_head"),
-                Content.Load<Texture2D>("Swordsman_lvl1_Idle_shadow"),
-                Content.Load<Texture2D>("Swordsman_lvl1_Idle_sword"),
-                Content.Load<Texture2D>("Swordsman_lvl1_Idle_sword_back")
 
-            };
+            rectangleTexture = Content.Load<Texture2D>("rectangle");
 
-            List<List<Texture2D>> wholelist = new List<List<Texture2D>>();
-            wholelist.Add(Idlespritesheets);
+            var wholelist = new List<List<Texture2D>>() { Idlespritesheets, Runningspritesheets };
+
             spritesheetManager = new SpritesheetManager(wholelist);
             spritesheetDraw = new SpritesheetDraw(wholelist);
         }
@@ -179,27 +112,47 @@ namespace spritesheet
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
-            // TODO: Add your update logic here
+            KeyboardState keyboardState = Keyboard.GetState();
+            playerDirection = Vector2.Zero;
 
-            spritesheetManager.SetPlayerDirection(rectangle: rectangle, keyboardState: keyboardState, playerDirection: playerDirection, directionRow: directionRow, leftRow: leftRow, rightRow: rightRow, downRow: downRow, upRow: upRow, frame: frame);
+            if (keyboardState.IsKeyDown(Keys.W)) playerDirection.Y -= 1;
+            if (keyboardState.IsKeyDown(Keys.S)) playerDirection.Y += 1;
+            if (keyboardState.IsKeyDown(Keys.A)) playerDirection.X -= 1;
+            if (keyboardState.IsKeyDown(Keys.D)) playerDirection.X += 1;
+
+            if (playerDirection != Vector2.Zero)
+            {
+                playerDirection = Vector2.Normalize(playerDirection);
+                state = Animation.Running;
+            }
+            else
+            {
+                state = Animation.Idle;
+            }
+
+            if (playerDirection.X < 0) directionRow = leftRow;
+            else if (playerDirection.X > 0) directionRow = rightRow;
+            else if (playerDirection.Y < 0) directionRow = downRow;
+            else if (playerDirection.Y > 0) directionRow = upRow;
+
             playerLocation += playerDirection * speed;
-            UpdatePlayerRects();
-            //playerBody.Update(gameTime);
 
+            playerCollisionRect.Location = playerLocation.ToPoint();
+            playerDrawRect.X = playerCollisionRect.X - 55;
+            playerDrawRect.Y = playerCollisionRect.Y - 40;
 
-            //time += (float)gameTime.ElapsedGameTime.TotalSeconds;
-            //if (time > frameSpeed && playerDirection != Vector2.Zero)
-            //{
-            //    time = 0f;
-            //    frame += 1;
-            //    if (frame >= frames)
-            //        frame = 0;
-            //}
-            //keyboardState = Keyboard.GetState();
+            int frames = framesPerDirection[state][directionRow]; 
+            float baseFrameSpeed = 0.1f; 
+            float frameSpeed = baseFrameSpeed * (8f / frames);
 
-            //SetPlayerDirection();
-            //playerLocation += playerDirection * speed;
-            //UpdatePlayerRects();
+            
+            time += (float)gameTime.ElapsedGameTime.TotalSeconds;
+            if (time > frameSpeed)
+            {
+                time = 0f;
+                frame++;
+                if (frame >= frames) frame = 0;
+            }
 
 
             base.Update(gameTime);
@@ -209,29 +162,18 @@ namespace spritesheet
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
-            // TODO: Add your drawing code here
             _spriteBatch.Begin();
 
-            playerDrawRect = spritesheetManager.Rectangle;
-            spritesheetDraw.Draw(_spriteBatch, playerDrawRect, directionRow, state, frame);
+            int currentColumns = framesPerDirection[state][directionRow];
+            int currentRows = rowsPerState[state];
+
+            spritesheetManager.Draw(_spriteBatch, state,  frame, playerDrawRect, directionRow, currentColumns, currentRows);
+
+            _spriteBatch.Draw(rectangleTexture, playerCollisionRect, Color.Black * 0.4f);
 
             _spriteBatch.End();
+
             base.Draw(gameTime);
-        }
-
-        public void GrandList()
-        {
-            //List<List<Texture2D>> wholelist = new List<List<Texture2D>>();
-            //wholelist.Add(Idlespritesheets);
-            //List<Texture2D> currentList = wholelist[0];
-            //Texture2D currentTexture = currentList[0];
-
-        }
-        public void UpdatePlayerRects()
-        {
-            playerCollisionRect.Location = playerLocation.ToPoint();
-            playerDrawRect.X = playerCollisionRect.X - 55;
-            playerDrawRect.Y = playerCollisionRect.Y - 40;
         }
     }
 }
