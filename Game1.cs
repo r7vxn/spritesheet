@@ -8,7 +8,8 @@ namespace spritesheet
     public enum Animation
     {
         Idle = 0,
-        Running = 1
+        Running = 1,
+        Attack = 2
     }
 
     public class Game1 : Game
@@ -57,7 +58,7 @@ namespace spritesheet
             framesPerDirection = new Dictionary<Animation, Dictionary<int, int>>();
             framesPerDirection[Animation.Idle] = new Dictionary<int, int>()
             {
-                { downRow, 4 },
+                { downRow, 12 },
                 { leftRow, 12 },
                 { rightRow, 12 },
                 { upRow, 12 }
@@ -69,11 +70,18 @@ namespace spritesheet
                 { rightRow, 8 },
                 { upRow, 8 }
             };
-
+            framesPerDirection[Animation.Attack] = new Dictionary<int, int>()
+            {
+                { downRow, 8 },
+                { leftRow, 8 },
+                { rightRow, 8 },
+                { upRow, 8 }
+            };
             rowsPerState = new Dictionary<Animation, int>()
             {
                 { Animation.Idle, 4 },
-                { Animation.Running, 4 }
+                { Animation.Running, 4 },
+                { Animation.Attack, 4 }
             };
         }
 
@@ -99,9 +107,18 @@ namespace spritesheet
                 Content.Load<Texture2D>("Swordsman_lvl1_Run_sword_back")
             };
 
+            var Attackspritesheets = new List<Texture2D>()
+            { 
+                Content.Load<Texture2D>("Swordsman_lvl1_Run_Attack_body"),
+                Content.Load<Texture2D>("Swordsman_lvl1_Run_Attack_head"),
+                Content.Load<Texture2D>("Swordsman_lvl1_Run_Attack_shadow"),
+                Content.Load<Texture2D>("Swordsman_lvl1_Run_Attack_swing"),
+                Content.Load<Texture2D>("Swordsman_lvl1_Run_Attack_sword"),
+                Content.Load<Texture2D>("Swordsman_lvl1_Run_Attack_sword_back")
+            };
             rectangleTexture = Content.Load<Texture2D>("rectangle");
 
-            var wholelist = new List<List<Texture2D>>() { Idlespritesheets, Runningspritesheets };
+            var wholelist = new List<List<Texture2D>>() { Idlespritesheets, Runningspritesheets, Attackspritesheets };
 
             spritesheetManager = new SpritesheetManager(wholelist);
             spritesheetDraw = new SpritesheetDraw(wholelist);
@@ -120,7 +137,13 @@ namespace spritesheet
             if (keyboardState.IsKeyDown(Keys.A)) playerDirection.X -= 1;
             if (keyboardState.IsKeyDown(Keys.D)) playerDirection.X += 1;
 
-            if (playerDirection != Vector2.Zero)
+
+
+            if (keyboardState.IsKeyDown(Keys.Space))
+            {
+                state = Animation.Attack;
+            }
+            else if (playerDirection != Vector2.Zero)
             {
                 playerDirection = Vector2.Normalize(playerDirection);
                 state = Animation.Running;
@@ -141,11 +164,17 @@ namespace spritesheet
             playerDrawRect.X = playerCollisionRect.X - 55;
             playerDrawRect.Y = playerCollisionRect.Y - 40;
 
-            int frames = framesPerDirection[state][directionRow]; 
-            float baseFrameSpeed = 0.1f; 
-            float frameSpeed = baseFrameSpeed * (8f / frames);
+            int frames = framesPerDirection[state][directionRow];
+            float frameSpeed = 0.12f;
+            if (state == Animation.Attack)
+            {
+                frameSpeed = 0.08f;
+            }
+            if (state == Animation.Idle && directionRow == downRow)
+            {
+                frameSpeed = 0.3f;
+            }
 
-            
             time += (float)gameTime.ElapsedGameTime.TotalSeconds;
             if (time > frameSpeed)
             {
