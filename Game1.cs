@@ -9,7 +9,9 @@ namespace spritesheet
     {
         Idle = 0,
         Running = 1,
-        Attack = 2
+        Attack = 2,
+        Death = 3,  
+        Hurt = 4,
     }
 
     public class Game1 : Game
@@ -19,6 +21,7 @@ namespace spritesheet
 
         private Texture2D rectangleTexture;
         private Rectangle playerCollisionRect, playerDrawRect, attackCollisionRect;
+        private bool attack;
 
         private Vector2 playerLocation;
         private Vector2 playerDirection;
@@ -48,6 +51,7 @@ namespace spritesheet
             state = Animation.Idle;
             playerLocation = new Vector2(20, 20);
             playerCollisionRect = new Rectangle(80, 60, 40, 70);
+            attackCollisionRect = new Rectangle(0,0,0,0);
             playerDrawRect = new Rectangle(20, 20, 150, 150);
             leftRow = 1;
             rightRow = 2;
@@ -77,11 +81,27 @@ namespace spritesheet
                 { rightRow, 8 },
                 { upRow, 8 }
             };
+            framesPerDirection[Animation.Death] = new Dictionary<int, int>()
+            {
+                { downRow, 7 },
+                { leftRow, 7 },
+                { rightRow, 7 },
+                { upRow, 7 }
+            };
+            framesPerDirection[Animation.Hurt] = new Dictionary<int, int>()
+            {
+                { downRow, 5 },
+                { leftRow, 5 },
+                { rightRow, 5 },
+                { upRow, 5 }
+            };
             rowsPerState = new Dictionary<Animation, int>()
             {
                 { Animation.Idle, 4 },
                 { Animation.Running, 4 },
-                { Animation.Attack, 4 }
+                { Animation.Attack, 4 },
+                { Animation.Death, 4 },
+                { Animation.Hurt, 4 },
             };
         }
 
@@ -116,9 +136,27 @@ namespace spritesheet
                 Content.Load<Texture2D>("Swordsman_lvl1_Run_Attack_sword"),
                 Content.Load<Texture2D>("Swordsman_lvl1_Run_Attack_sword_back")
             };
+            var Deathspritesheets = new List<Texture2D>()
+            {
+                Content.Load<Texture2D>("Swordsman_lvl1_Death_body"),
+                Content.Load<Texture2D>("Swordsman_lvl1_Death_head"),
+                Content.Load<Texture2D>("Swordsman_lvl1_Death_red"),
+                Content.Load<Texture2D>("Swordsman_lvl1_Death_shadow"),
+                Content.Load<Texture2D>("Swordsman_lvl1_Death_sword"),
+                Content.Load<Texture2D>("Swordsman_lvl1_Death_sword_back")
+            };
+            var Hurtspritesheets = new List<Texture2D>()
+            {
+                Content.Load<Texture2D>("Swordsman_lvl1_Hurt_body"),
+                Content.Load<Texture2D>("Swordsman_lvl1_Hurt_head"),
+                Content.Load<Texture2D>("Swordsman_lvl1_Hurt_red"),
+                Content.Load<Texture2D>("Swordsman_lvl1_Hurt_sword"),
+                Content.Load<Texture2D>("Swordsman_lvl1_Hurt_sword_back")
+            };
+
             rectangleTexture = Content.Load<Texture2D>("rectangle");
 
-            var wholelist = new List<List<Texture2D>>() { Idlespritesheets, Runningspritesheets, Attackspritesheets };
+            var wholelist = new List<List<Texture2D>>() { Idlespritesheets, Runningspritesheets, Attackspritesheets, Deathspritesheets, Hurtspritesheets};
 
             spritesheetManager = new SpritesheetManager(wholelist);
             spritesheetDraw = new SpritesheetDraw(wholelist);
@@ -142,6 +180,30 @@ namespace spritesheet
             if (keyboardState.IsKeyDown(Keys.Space))
             {
                 state = Animation.Attack;
+                if (directionRow == 0)
+                {
+                    attackCollisionRect = new Rectangle(playerDrawRect.X + 35, playerDrawRect.Y + 95, 80, 40);
+                }
+                if (directionRow == 1)
+                {
+                    attackCollisionRect = new Rectangle(playerDrawRect.X + 20, playerDrawRect.Y + 35, 40, 80);
+                }
+                if (directionRow == 2)
+                {
+                    attackCollisionRect = new Rectangle(playerDrawRect.X + 90, playerDrawRect.Y + 35, 40, 80);
+                }
+                if (directionRow == 3)
+                {
+                    attackCollisionRect = new Rectangle(playerDrawRect.X + 35, playerDrawRect.Y + 20, 80, 40);
+                }
+            }
+            else if (keyboardState.IsKeyDown(Keys.R))
+            {
+                state = Animation.Death;
+            }
+            else if (keyboardState.IsKeyDown(Keys.Q))
+            {
+                state = Animation.Hurt;
             }
             else if (playerDirection != Vector2.Zero)
             {
@@ -199,6 +261,8 @@ namespace spritesheet
             spritesheetManager.Draw(_spriteBatch, state,  frame, playerDrawRect, directionRow, currentColumns, currentRows);
 
             _spriteBatch.Draw(rectangleTexture, playerCollisionRect, Color.Black * 0.4f);
+
+            _spriteBatch.Draw(rectangleTexture, attackCollisionRect, Color.Black * 0.4f);
 
             _spriteBatch.End();
 
