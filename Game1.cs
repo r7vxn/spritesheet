@@ -18,7 +18,7 @@ namespace spritesheet
         private SpriteBatch _spriteBatch;
 
         private Texture2D rectangleTexture;
-        private Rectangle playerCollisionRect, playerDrawRect;
+        private Rectangle playerCollisionRect, playerDrawRect, attackCollisionRect;
 
         private Vector2 playerLocation;
         private Vector2 playerDirection;
