@@ -25,6 +25,24 @@ namespace spritesheet
 
     public class Game1 : Game
     {
+
+        // using chatgpt to code the air barriers for background
+        // Player size
+        public const int PLAYER_WIDTH = 32;
+        public const int PLAYER_HEIGHT = 32;
+
+        // Player position
+        public Vector2 playerPosition = new Vector2(100, 100); // adjust start position as needed
+
+        // List of air barriers (river, rocks, map edges)
+        List<Rectangle> airBarriers = new List<Rectangle>();
+
+
+
+
+
+
+
         private GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
 
@@ -69,6 +87,11 @@ namespace spritesheet
         protected override void Initialize()
         {
             base.Initialize();
+
+
+            SetupCollision();
+
+
             _graphics.PreferredBackBufferWidth = 1920;
             _graphics.PreferredBackBufferHeight = 1080;
             _graphics.ApplyChanges();
@@ -77,7 +100,7 @@ namespace spritesheet
             playerLocation = new Vector2(20, 20);
             playerCollisionRect = new Rectangle(80, 60, 40, 70);
             attackCollisionRect = new Rectangle(0, 0, 0, 0);
-            playerDrawRect = new Rectangle(20, 20, 150, 150);
+            playerDrawRect = new Rectangle(1920/2, 1080/3, 150, 150);
             leftRow = 1;
             rightRow = 2;
             upRow = 0;
@@ -188,6 +211,23 @@ namespace spritesheet
 
         }
 
+
+        private bool CanMoveTo(Vector2 newPosition)  // <- Step 3 goes here
+        {
+            Rectangle nextHitbox = new Rectangle(
+                (int)newPosition.X,
+                (int)newPosition.Y,
+                PLAYER_WIDTH,
+                PLAYER_HEIGHT
+            );
+
+            foreach (Rectangle barrier in airBarriers)
+                if (nextHitbox.Intersects(barrier))
+                    return false;
+
+            return true;
+        }
+
         protected override void LoadContent()
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
@@ -280,10 +320,23 @@ namespace spritesheet
             KeyboardState keyboardState = Keyboard.GetState();
             playerDirection = Vector2.Zero;
 
-            if (keyboardState.IsKeyDown(Keys.W)) playerDirection.Y -= 1;
-            if (keyboardState.IsKeyDown(Keys.S)) playerDirection.Y += 1;
-            if (keyboardState.IsKeyDown(Keys.A)) playerDirection.X -= 1;
-            if (keyboardState.IsKeyDown(Keys.D)) playerDirection.X += 1;
+            Vector2 movement = Vector2.Zero;
+            KeyboardState barrierstate = Keyboard.GetState();
+
+            if (barrierstate.IsKeyDown(Keys.W)) movement.Y -= 2;
+            if (barrierstate.IsKeyDown(Keys.S)) movement.Y += 2;
+            if (barrierstate.IsKeyDown(Keys.A)) movement.X -= 2;
+            if (barrierstate.IsKeyDown(Keys.D)) movement.X += 2;
+
+            // Split movement to prevent sticking to barriers
+            Vector2 newPosX = playerPosition + new Vector2(movement.X, 0);
+            if (CanMoveTo(newPosX))
+                playerPosition = newPosX;
+
+            Vector2 newPosY = playerPosition + new Vector2(0, movement.Y);
+            if (CanMoveTo(newPosY))
+                playerPosition = newPosY;
+
 
 
 
@@ -390,5 +443,30 @@ namespace spritesheet
 
             }
         }
+
+        private void SetupCollision()
+        {
+            // Map edges (prevent leaving screen)
+            airBarriers.Add(new Rectangle(-50, 0, 50, 600));   // left wall
+            airBarriers.Add(new Rectangle(800, 0, 50, 600));   // right wall
+            airBarriers.Add(new Rectangle(0, -50, 800, 50));   // top wall
+            airBarriers.Add(new Rectangle(0, 600, 800, 50));   // bottom wall
+
+            // River / water collision areas
+            airBarriers.Add(new Rectangle(0, 380, 260, 100));   // left water
+            airBarriers.Add(new Rectangle(240, 400, 240, 100)); // center water
+            airBarriers.Add(new Rectangle(480, 380, 320, 100)); // right water
+
+            // Rocks and bush edges near river
+            airBarriers.Add(new Rectangle(100, 360, 80, 60));
+            airBarriers.Add(new Rectangle(300, 350, 100, 70));
+            airBarriers.Add(new Rectangle(520, 360, 90, 60));
+
+            // Trees and outer ground boundaries
+            airBarriers.Add(new Rectangle(0, 0, 800, 60));    // top tree line
+            airBarriers.Add(new Rectangle(0, 0, 60, 600));    // left trees
+            airBarriers.Add(new Rectangle(740, 0, 60, 600));  // right trees
+        }
+
     }
 }
