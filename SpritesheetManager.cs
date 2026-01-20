@@ -12,13 +12,6 @@ namespace spritesheet
     public class SpritesheetManager
     {
         List<SpritesheetDraw> spritesheetDraw;
-        Rectangle rectangle;
-
-        public Rectangle Rectangle
-        {
-            get => rectangle;
-            set => rectangle = value;
-        }
 
         public SpritesheetManager(List<List<Texture2D>> wholelist)
         {
