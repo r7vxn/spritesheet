@@ -69,7 +69,7 @@ namespace spritesheet
         private int slimeDirectionRow, slimeLeftRow, slimeRightRow, slimeUpRow, slimeDownRow;
         private SlimeAnimation slimeState;
         private int slimeFrame;
-        private float slimeTime, slimeFrameSpeed = 1f, slimeSpeed = 80f;
+        private float slimeTime, slimeFrameSpeed = 1f, slimeSpeed = 5f;
         private int slimeFrames;
 
         private SlimeDraw slimeDraw;
@@ -410,10 +410,8 @@ namespace spritesheet
                 if (frame >= frames) frame = 0;
             }
             //Slime Codes
-            slimeDrawRect.X = (int)slimeLocation.X;
-            slimeDrawRect.Y = (int)slimeLocation.Y;
-
-            slimeTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            slimeDrawRect.X = (int)slimeLocation.X - 55;
+            slimeDrawRect.Y = (int)slimeLocation.Y - 50;
 
             slimeDirection = playerLocation - slimeLocation;
 
@@ -445,15 +443,19 @@ namespace spritesheet
             }
 
 
-            int slimeFrames = slimeFramesPerDirection[slimeState][slimeDirectionRow];
-            float slimeFrameSpeed = 0.12f;
+            slimeFrames = slimeFramesPerDirection[slimeState][slimeDirectionRow]; 
+            slimeFrameSpeed = 0.12f;
+
             slimeTime += (float)gameTime.ElapsedGameTime.TotalSeconds;
+
             if (slimeTime > slimeFrameSpeed)
             {
                 slimeTime = 0f;
                 slimeFrame++;
-                if (slimeFrame >= frames) slimeFrame = 0;
+                if (slimeFrame >= slimeFrames)  
+                    slimeFrame = 0;
             }
+
 
 
             base.Update(gameTime);
