@@ -30,10 +30,6 @@ namespace spritesheet
         // Player size
         public const int PLAYER_WIDTH = 32;
         public const int PLAYER_HEIGHT = 32;
-
-        // Player position
-        public Vector2 playerPosition = new Vector2(100, 100); // adjust start position as needed
-
         // List of air barriers (river, rocks, map edges)
         List<Rectangle> airBarriers = new List<Rectangle>();
 
@@ -97,10 +93,10 @@ namespace spritesheet
             _graphics.ApplyChanges();
 
             state = Animation.Idle;
-            playerLocation = new Vector2(20, 20);
+            playerLocation = new Vector2(1920/2, 1080/3);
             playerCollisionRect = new Rectangle(80, 60, 40, 70);
             attackCollisionRect = new Rectangle(0, 0, 0, 0);
-            playerDrawRect = new Rectangle(1920/2, 1080/3, 150, 150);
+            playerDrawRect = new Rectangle(0,0, 150, 150);
             leftRow = 1;
             rightRow = 2;
             upRow = 0;
@@ -320,22 +316,21 @@ namespace spritesheet
             KeyboardState keyboardState = Keyboard.GetState();
             playerDirection = Vector2.Zero;
 
-            Vector2 movement = Vector2.Zero;
             KeyboardState barrierstate = Keyboard.GetState();
 
-            if (barrierstate.IsKeyDown(Keys.W)) movement.Y -= 2;
-            if (barrierstate.IsKeyDown(Keys.S)) movement.Y += 2;
-            if (barrierstate.IsKeyDown(Keys.A)) movement.X -= 2;
-            if (barrierstate.IsKeyDown(Keys.D)) movement.X += 2;
+            if (barrierstate.IsKeyDown(Keys.W)) playerDirection.Y -= 5;
+            if (barrierstate.IsKeyDown(Keys.S)) playerDirection.Y += 5;
+            if (barrierstate.IsKeyDown(Keys.A)) playerDirection.X -= 5;
+            if (barrierstate.IsKeyDown(Keys.D)) playerDirection.X += 5;
 
             // Split movement to prevent sticking to barriers
-            Vector2 newPosX = playerPosition + new Vector2(movement.X, 0);
+            Vector2 newPosX = playerLocation + new Vector2(playerDirection.X, 0);
             if (CanMoveTo(newPosX))
-                playerPosition = newPosX;
+                playerLocation = newPosX;
 
-            Vector2 newPosY = playerPosition + new Vector2(0, movement.Y);
+            Vector2 newPosY = playerLocation + new Vector2(0, playerDirection.Y);
             if (CanMoveTo(newPosY))
-                playerPosition = newPosY;
+                playerLocation = newPosY;
 
 
 
@@ -384,7 +379,6 @@ namespace spritesheet
             else if (playerDirection.Y < 0) directionRow = downRow;
             else if (playerDirection.Y > 0) directionRow = upRow;
 
-            playerLocation += playerDirection * speed;
 
             playerCollisionRect.Location = playerLocation.ToPoint();
             playerDrawRect.X = playerCollisionRect.X - 55;
@@ -434,6 +428,13 @@ namespace spritesheet
 
             _spriteBatch.End();
 
+            Texture2D debugTex = new Texture2D(GraphicsDevice, 1, 1);
+            debugTex.SetData(new[] { Color.Red });
+
+            _spriteBatch.Begin();
+            foreach (Rectangle r in airBarriers)
+                _spriteBatch.Draw(debugTex, r, Color.Red * 0.3f); // semi-transparent overlay
+            _spriteBatch.End();
             base.Draw(gameTime);
         }
         public void AttackCollision()
@@ -447,25 +448,14 @@ namespace spritesheet
         private void SetupCollision()
         {
             // Map edges (prevent leaving screen)
-            airBarriers.Add(new Rectangle(-50, 0, 50, 600));   // left wall
-            airBarriers.Add(new Rectangle(800, 0, 50, 600));   // right wall
-            airBarriers.Add(new Rectangle(0, -50, 800, 50));   // top wall
-            airBarriers.Add(new Rectangle(0, 600, 800, 50));   // bottom wall
+            airBarriers.Add(new Rectangle(0, 0, 150, 1080));
+            airBarriers.Add(new Rectangle(0, 0, 1920, 200));
+            airBarriers.Add(new Rectangle(0, 0, 600, 260));
+            airBarriers.Add(new Rectangle(0, 0, 400, 300));
+            airBarriers.Add(new Rectangle(0, 0, 300, 400));
+            airBarriers.Add(new Rectangle(1780, 0, 150, 1080));
+            airBarriers.Add(new Rectangle(0, 850, 400, 500));
 
-            // River / water collision areas
-            airBarriers.Add(new Rectangle(0, 380, 260, 100));   // left water
-            airBarriers.Add(new Rectangle(240, 400, 240, 100)); // center water
-            airBarriers.Add(new Rectangle(480, 380, 320, 100)); // right water
-
-            // Rocks and bush edges near river
-            airBarriers.Add(new Rectangle(100, 360, 80, 60));
-            airBarriers.Add(new Rectangle(300, 350, 100, 70));
-            airBarriers.Add(new Rectangle(520, 360, 90, 60));
-
-            // Trees and outer ground boundaries
-            airBarriers.Add(new Rectangle(0, 0, 800, 60));    // top tree line
-            airBarriers.Add(new Rectangle(0, 0, 60, 600));    // left trees
-            airBarriers.Add(new Rectangle(740, 0, 60, 600));  // right trees
         }
 
     }
