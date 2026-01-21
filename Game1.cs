@@ -62,7 +62,7 @@ namespace spritesheet
         private Dictionary<SlimeAnimation, Dictionary<int, int>> slimeFramesPerDirection;
         private Dictionary<SlimeAnimation, int> slimeRowsPerState;
 
-
+        private Rectangle slimeRangeRect;
         private Rectangle slimeDrawRect, slimeCollisionRect, slimeAttackRect;
         private Vector2 slimeLocation;
         private Vector2 slimeDirection;
@@ -71,6 +71,11 @@ namespace spritesheet
         private int slimeFrame;
         private float slimeTime, slimeFrameSpeed = 1f, slimeSpeed = 5f;
         private int slimeFrames;
+        private bool slimeReset;
+        private bool slimeAttackState = false;
+        private bool slimeFrameCheck = false;
+        private bool slimeAttackCollision = false;
+        
 
         private SlimeDraw slimeDraw;
         private SlimeManager slimeManager;
@@ -104,6 +109,9 @@ namespace spritesheet
             downRow = 3;
             directionRow = downRow;
 
+            slimeRangeRect = new Rectangle(0, 0, 100, 110);
+            slimeCollisionRect = new Rectangle(0, 0, 50, 50);
+            slimeAttackRect = new Rectangle(0, 0, 60, 40);
             slimeState = SlimeAnimation.SlimeIdle;
             slimeLeftRow = 2;
             slimeRightRow = 3;
@@ -168,10 +176,10 @@ namespace spritesheet
             };
             slimeFramesPerDirection[SlimeAnimation.SlimeAttack] = new Dictionary<int, int>()
             {
-                { downRow, 9 },
-                { leftRow, 9 },
-                { rightRow, 9 },
-                { upRow, 9 }
+                { downRow, 10 },
+                { leftRow, 10 },
+                { rightRow, 10 },
+                { upRow, 10 }
             };
             slimeFramesPerDirection[SlimeAnimation.SlimeDeath] = new Dictionary<int, int>()
             {
@@ -410,8 +418,20 @@ namespace spritesheet
                 if (frame >= frames) frame = 0;
             }
             //Slime Codes
+
+            slimeRangeRect.X = playerCollisionRect.X - 30;
+            slimeRangeRect.Y = playerCollisionRect.Y - 20;
+
+            slimeCollisionRect.Location = slimeLocation.ToPoint();
+            slimeCollisionRect.X = slimeDrawRect.X + 50;
+            slimeCollisionRect.Y = slimeDrawRect.Y + 50;
+
             slimeDrawRect.X = (int)slimeLocation.X - 55;
             slimeDrawRect.Y = (int)slimeLocation.Y - 50;
+
+            slimeAttackRect.Location = slimeLocation.ToPoint();
+            slimeAttackRect.X = (int)slimeLocation.X - 10;
+            slimeAttackRect.Y = (int)slimeLocation.Y + 10;
 
             slimeDirection = playerLocation - slimeLocation;
 
@@ -452,12 +472,60 @@ namespace spritesheet
             {
                 slimeTime = 0f;
                 slimeFrame++;
-                if (slimeFrame >= slimeFrames)  
+                if (slimeFrame >= slimeFrames)
+                {  
                     slimeFrame = 0;
+                    slimeFrameCheck = true;
+                }
+                else
+                {
+                    slimeFrameCheck = false;
+                }
+                   
+                
+            }
+
+            
+
+            if (keyboardState.IsKeyDown(Keys.P))
+            {
+                slimeState = SlimeAnimation.SlimeAttack;
             }
 
 
+            if (slimeReset && slimeCollisionRect.Intersects(slimeRangeRect))
+            {
+                slimeFrame = 0;
+                slimeReset = false;
+            }
+            if (!slimeCollisionRect.Intersects(slimeRangeRect))
+            {
+                slimeReset = true;
+            }
+            if (slimeCollisionRect.Intersects(slimeRangeRect))
+            {
+                slimeAttackState = true;
+            }
+            if (slimeAttackState)
+            {
+                slimeState = SlimeAnimation.SlimeAttack;
+                if (slimeFrame > 4)
+                {
+                    slimeAttackCollision = true;
+                }
+                if (slimeFrameCheck)
+                {
+                    slimeAttackState = false;
+                }
+            }
+            if (!slimeAttackState)
+            {
+                slimeState = SlimeAnimation.SlimeRunning;
+            }
+            if (slimeAttackCollision)
+            {
 
+            }
             base.Update(gameTime);
         }
 
@@ -483,26 +551,15 @@ namespace spritesheet
 
             _spriteBatch.Draw(rectangleTexture, attackCollisionRect, Color.Black * 0.4f);
 
+            _spriteBatch.Draw(rectangleTexture, slimeRangeRect, Color.Black * 0.4f);
 
+            _spriteBatch.Draw(rectangleTexture, slimeCollisionRect, Color.Black * 0.4f);
 
+            _spriteBatch.Draw(rectangleTexture, slimeAttackRect, Color.Black * 0.4f);
             _spriteBatch.End();
 
-            //Texture2D debugTex = new Texture2D(GraphicsDevice, 1, 1);
-            //debugTex.SetData(new[] { Color.Red });
-
-            //_spriteBatch.Begin();
-            //foreach (Rectangle r in airBarriers)
-            //    _spriteBatch.Draw(debugTex, r, Color.Red * 0.3f); // semi-transparent overlay
-            //_spriteBatch.End();
-            //base.Draw(gameTime);
         }
-        public void AttackCollision()
-        {
-            if (attack == true)
-            {
 
-            }
-        }
 
         private void SetupCollision()
         {
