@@ -6,6 +6,10 @@ using System.Collections.Generic;
 
 namespace spritesheet
 {
+    public enum Screen
+    {
+        intro, game, end
+    }
     public enum Animation
     {
         Idle = 0,
@@ -27,11 +31,8 @@ namespace spritesheet
     public class Game1 : Game
     {
 
-        // using chatgpt to code the air barriers for background
-        // Player size
         public const int PLAYER_WIDTH = 35;
         public const int PLAYER_HEIGHT = 70;
-        // List of air barriers (river, rocks, map edges)
         List<Rectangle> airBarriers = new List<Rectangle>();
 
 
@@ -41,8 +42,21 @@ namespace spritesheet
         private Rectangle window = new Rectangle(0, 0, 960, 540);
         private Texture2D rectangleTexture;
         private Texture2D backgroundTexture;
+        private Texture2D introTexture;
+        private Rectangle introRect = new Rectangle(280, 220, 400, 100);
+        private SpriteFont font;
+        private Vector2 introVector;
+        private MouseState mouseState;
+        private bool playerDied = false;
+        private string endScreenMessage;
+
+
+
         private Rectangle playerCollisionRect, playerDrawRect, attackCollisionRect;
         private bool attack = false;
+        private int playerHealth;
+        private int playerDamage;
+
 
         private Vector2 playerLocation;
         private Vector2 playerDirection;
@@ -75,10 +89,18 @@ namespace spritesheet
         private bool slimeAttackState = false;
         private bool slimeFrameCheck = false;
         private bool slimeAttackCollision = false;
+        private bool slimeAttacked = false;
+        private int slimeHealth;
+        private int slimeDamage;
+        private float slimeAttackTimer;
         
 
         private SlimeDraw slimeDraw;
         private SlimeManager slimeManager;
+
+        private Screen screen;
+
+        
         public Game1()
         {
             _graphics = new GraphicsDeviceManager(this);
@@ -93,10 +115,19 @@ namespace spritesheet
 
             SetupCollision();
 
+            screen = Screen.intro;
+
+            introVector.X = window.Width/2 - 50;
+            introVector.Y = window.Height/2 - 15;
 
             _graphics.PreferredBackBufferWidth = 960;
             _graphics.PreferredBackBufferHeight = 540;
             _graphics.ApplyChanges();
+
+            playerHealth = 15;
+            slimeHealth = 15;
+            playerDamage = 5;
+            slimeDamage = 3;
 
             state = Animation.Idle;
             playerLocation = new Vector2(460, 460);
@@ -219,7 +250,7 @@ namespace spritesheet
         }
 
 
-        private bool CanMoveTo(Vector2 newPosition)  // <- Step 3 goes here
+        private bool CanMoveTo(Vector2 newPosition) 
         {
             Rectangle nextHitbox = new Rectangle(
                 (int)newPosition.X,
@@ -312,6 +343,8 @@ namespace spritesheet
             };
             rectangleTexture = Content.Load<Texture2D>("rectangle");
             backgroundTexture = Content.Load<Texture2D>("forest background");
+            introTexture = Content.Load<Texture2D>("forest intro");
+            font = Content.Load<SpriteFont>("Font");
 
             var wholelist = new List<List<Texture2D>>() { Idlespritesheets, Runningspritesheets, Attackspritesheets, Deathspritesheets, Hurtspritesheets };
             spritesheetManager = new SpritesheetManager(wholelist);
@@ -324,207 +357,245 @@ namespace spritesheet
 
         protected override void Update(GameTime gameTime)
         {
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-                Exit();
 
-            KeyboardState keyboardState = Keyboard.GetState();
-            playerDirection = Vector2.Zero;
-
-            KeyboardState barrierstate = Keyboard.GetState();
-
-            if (barrierstate.IsKeyDown(Keys.W)) playerDirection.Y -= 3;
-            if (barrierstate.IsKeyDown(Keys.S)) playerDirection.Y += 3;
-            if (barrierstate.IsKeyDown(Keys.A)) playerDirection.X -= 3;
-            if (barrierstate.IsKeyDown(Keys.D)) playerDirection.X += 3;
-
-            // Split movement to prevent sticking to barriers
-            Vector2 newPosX = playerLocation + new Vector2(playerDirection.X, 0);
-            if (CanMoveTo(newPosX))
-                playerLocation = newPosX;
-
-            Vector2 newPosY = playerLocation + new Vector2(0, playerDirection.Y);
-            if (CanMoveTo(newPosY))
-                playerLocation = newPosY;
-
-
-
-
-            if (keyboardState.IsKeyDown(Keys.Space))
+            if (screen == Screen.intro)
             {
-                state = Animation.Attack;
-                attack = true;
-                if (directionRow == 0)
+                mouseState = Mouse.GetState();
+                if (mouseState.LeftButton == ButtonState.Pressed && introRect.Contains(mouseState.Position))
                 {
-                    attackCollisionRect = new Rectangle(playerDrawRect.X + 35, playerDrawRect.Y + 95, 80, 40);
-                }
-                if (directionRow == 1)
-                {
-                    attackCollisionRect = new Rectangle(playerDrawRect.X + 20, playerDrawRect.Y + 35, 40, 80);
-                }
-                if (directionRow == 2)
-                {
-                    attackCollisionRect = new Rectangle(playerDrawRect.X + 90, playerDrawRect.Y + 35, 40, 80);
-                }
-                if (directionRow == 3)
-                {
-                    attackCollisionRect = new Rectangle(playerDrawRect.X + 35, playerDrawRect.Y + 20, 80, 40);
+                    screen = Screen.game;
                 }
             }
-            else if (keyboardState.IsKeyDown(Keys.R))
+            if (screen == Screen.game)
             {
-                state = Animation.Death;
-            }
-            else if (keyboardState.IsKeyDown(Keys.Q))
-            {
-                state = Animation.Hurt;
-            }
-            else if (playerDirection != Vector2.Zero)
-            {
-                playerDirection = Vector2.Normalize(playerDirection);
-                state = Animation.Running;
-            }
-            else
-            {
-                state = Animation.Idle;
-            }
 
-            if (playerDirection.X < 0) directionRow = leftRow;
-            else if (playerDirection.X > 0) directionRow = rightRow;
-            else if (playerDirection.Y < 0) directionRow = downRow;
-            else if (playerDirection.Y > 0) directionRow = upRow;
-
-
-            playerCollisionRect.Location = playerLocation.ToPoint();
-            playerDrawRect.X = playerCollisionRect.X - 55;
-            playerDrawRect.Y = playerCollisionRect.Y - 40;
-
-
-            int frames = framesPerDirection[state][directionRow];
-            float frameSpeed = 0.12f;
-            if (state == Animation.Attack)
-            {
-                frameSpeed = 0.08f;
-            }
-            if (state == Animation.Idle && directionRow == downRow)
-            {
-                frameSpeed = 0.3f;
-            }
-
-            time += (float)gameTime.ElapsedGameTime.TotalSeconds;
-            if (time > frameSpeed)
-            {
-                time = 0f;
-                frame++;
-                if (frame >= frames) frame = 0;
-            }
-            //Slime Codes
-
-            slimeRangeRect.X = playerCollisionRect.X - 30;
-            slimeRangeRect.Y = playerCollisionRect.Y - 20;
-
-            slimeCollisionRect.Location = slimeLocation.ToPoint();
-            slimeCollisionRect.X = slimeDrawRect.X + 50;
-            slimeCollisionRect.Y = slimeDrawRect.Y + 50;
-
-            slimeDrawRect.X = (int)slimeLocation.X - 55;
-            slimeDrawRect.Y = (int)slimeLocation.Y - 50;
-
-            slimeAttackRect.Location = slimeLocation.ToPoint();
-            slimeAttackRect.X = (int)slimeLocation.X - 10;
-            slimeAttackRect.Y = (int)slimeLocation.Y + 10;
-
-            slimeDirection = playerLocation - slimeLocation;
-
-            if (slimeDirection != Vector2.Zero)
-            {
-                slimeDirection.Normalize();
-
-                slimeLocation += slimeDirection * slimeSpeed * slimeTime;
-            }
-
-            if (Math.Abs(slimeDirection.X) > Math.Abs(slimeDirection.Y))
-            {
-                if (slimeDirection.X > 0)
-                    slimeDirectionRow = slimeRightRow;
-                else
-                    slimeDirectionRow = slimeLeftRow;
-            }
-            else
-            {
-                if (slimeDirection.Y > 0)
-                    slimeDirectionRow = slimeDownRow;
-                else
-                    slimeDirectionRow = slimeUpRow;
-            }
-
-            if (slimeDirection != Vector2.Zero)
-            { 
-                slimeState = SlimeAnimation.SlimeRunning;
-            }
-
-
-            slimeFrames = slimeFramesPerDirection[slimeState][slimeDirectionRow]; 
-            slimeFrameSpeed = 0.12f;
-
-            slimeTime += (float)gameTime.ElapsedGameTime.TotalSeconds;
-
-            if (slimeTime > slimeFrameSpeed)
-            {
-                slimeTime = 0f;
-                slimeFrame++;
-                if (slimeFrame >= slimeFrames)
-                {  
-                    slimeFrame = 0;
-                    slimeFrameCheck = true;
-                }
-                else
-                {
-                    slimeFrameCheck = false;
-                }
-                   
                 
-            }
-
-            
-
-            if (keyboardState.IsKeyDown(Keys.P))
-            {
-                slimeState = SlimeAnimation.SlimeAttack;
-            }
-
-
-            if (slimeReset && slimeCollisionRect.Intersects(slimeRangeRect))
-            {
-                slimeFrame = 0;
-                slimeReset = false;
-            }
-            if (!slimeCollisionRect.Intersects(slimeRangeRect))
-            {
-                slimeReset = true;
-            }
-            if (slimeCollisionRect.Intersects(slimeRangeRect))
-            {
-                slimeAttackState = true;
-            }
-            if (slimeAttackState)
-            {
-                slimeState = SlimeAnimation.SlimeAttack;
-                if (slimeFrame > 4)
+                playerDirection = Vector2.Zero;
+                KeyboardState keyboardState = Keyboard.GetState();
+                if (keyboardState.IsKeyDown(Keys.Escape))
                 {
-                    slimeAttackCollision = true;
+                    screen = Screen.end;
                 }
-                if (slimeFrameCheck)
-                {
-                    slimeAttackState = false;
-                }
-            }
-            if (!slimeAttackState)
-            {
-                slimeState = SlimeAnimation.SlimeRunning;
-            }
-            if (slimeAttackCollision)
-            {
 
+                KeyboardState barrierstate = Keyboard.GetState();
+
+                if (barrierstate.IsKeyDown(Keys.W)) playerDirection.Y -= 3;
+                if (barrierstate.IsKeyDown(Keys.S)) playerDirection.Y += 3;
+                if (barrierstate.IsKeyDown(Keys.A)) playerDirection.X -= 3;
+                if (barrierstate.IsKeyDown(Keys.D)) playerDirection.X += 3;
+
+                Vector2 newPosX = playerLocation + new Vector2(playerDirection.X, 0);
+                if (CanMoveTo(newPosX))
+                    playerLocation = newPosX;
+
+                Vector2 newPosY = playerLocation + new Vector2(0, playerDirection.Y);
+                if (CanMoveTo(newPosY))
+                    playerLocation = newPosY;
+
+
+
+
+                if (keyboardState.IsKeyDown(Keys.Space))
+                {
+                    state = Animation.Attack;
+                    attack = true;
+                    if (directionRow == 0)
+                    {
+                        attackCollisionRect = new Rectangle(playerDrawRect.X + 35, playerDrawRect.Y + 95, 80, 40);
+                    }
+                    if (directionRow == 1)
+                    {
+                        attackCollisionRect = new Rectangle(playerDrawRect.X + 20, playerDrawRect.Y + 35, 40, 80);
+                    }
+                    if (directionRow == 2)
+                    {
+                        attackCollisionRect = new Rectangle(playerDrawRect.X + 90, playerDrawRect.Y + 35, 40, 80);
+                    }
+                    if (directionRow == 3)
+                    {
+                        attackCollisionRect = new Rectangle(playerDrawRect.X + 35, playerDrawRect.Y + 20, 80, 40);
+                    }
+                }
+                else if (keyboardState.IsKeyDown(Keys.R))
+                {
+                    state = Animation.Death;
+                }
+                else if (keyboardState.IsKeyDown(Keys.Q))
+                {
+                    state = Animation.Hurt;
+                }
+                else if (playerDirection != Vector2.Zero)
+                {
+                    playerDirection = Vector2.Normalize(playerDirection);
+                    state = Animation.Running;
+                }
+                else
+                {
+                    state = Animation.Idle;
+                }
+
+                if (playerDirection.X < 0) directionRow = leftRow;
+                else if (playerDirection.X > 0) directionRow = rightRow;
+                else if (playerDirection.Y < 0) directionRow = downRow;
+                else if (playerDirection.Y > 0) directionRow = upRow;
+
+
+                playerCollisionRect.Location = playerLocation.ToPoint();
+                playerDrawRect.X = playerCollisionRect.X - 55;
+                playerDrawRect.Y = playerCollisionRect.Y - 40;
+
+
+                int frames = framesPerDirection[state][directionRow];
+                float frameSpeed = 0.12f;
+                if (state == Animation.Attack)
+                {
+                    frameSpeed = 0.08f;
+                }
+                if (state == Animation.Idle && directionRow == downRow)
+                {
+                    frameSpeed = 0.3f;
+                }
+
+                time += (float)gameTime.ElapsedGameTime.TotalSeconds;
+                if (time > frameSpeed)
+                {
+                    time = 0f;
+                    frame++;
+                    if (frame >= frames) frame = 0;
+                }
+                //Slime Codes
+
+                slimeRangeRect.X = playerCollisionRect.X - 30;
+                slimeRangeRect.Y = playerCollisionRect.Y - 20;
+
+                slimeCollisionRect.Location = slimeLocation.ToPoint();
+                slimeCollisionRect.X = slimeDrawRect.X + 50;
+                slimeCollisionRect.Y = slimeDrawRect.Y + 50;
+
+                slimeDrawRect.X = (int)slimeLocation.X - 55;
+                slimeDrawRect.Y = (int)slimeLocation.Y - 50;
+
+                slimeAttackRect.Location = slimeLocation.ToPoint();
+                slimeAttackRect.X = (int)slimeLocation.X - 10;
+                slimeAttackRect.Y = (int)slimeLocation.Y + 10;
+
+                slimeDirection = playerLocation - slimeLocation;
+
+                if (slimeDirection != Vector2.Zero)
+                {
+                    slimeDirection.Normalize();
+
+                    slimeLocation += slimeDirection * slimeSpeed * slimeTime;
+                }
+
+                if (Math.Abs(slimeDirection.X) > Math.Abs(slimeDirection.Y))
+                {
+                    if (slimeDirection.X > 0)
+                        slimeDirectionRow = slimeRightRow;
+                    else
+                        slimeDirectionRow = slimeLeftRow;
+                }
+                else
+                {
+                    if (slimeDirection.Y > 0)
+                        slimeDirectionRow = slimeDownRow;
+                    else
+                        slimeDirectionRow = slimeUpRow;
+                }
+
+                if (slimeDirection != Vector2.Zero)
+                {
+                    slimeState = SlimeAnimation.SlimeRunning;
+                }
+
+
+                slimeFrames = slimeFramesPerDirection[slimeState][slimeDirectionRow];
+                slimeFrameSpeed = 0.12f;
+
+                slimeTime += (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+                if (slimeTime > slimeFrameSpeed)
+                {
+                    slimeTime = 0f;
+                    slimeFrame++;
+                    if (slimeFrame >= slimeFrames)
+                    {
+                        slimeFrame = 0;
+                        slimeFrameCheck = true;
+                    }
+                    else
+                    {
+                        slimeFrameCheck = false;
+                    }
+
+                }
+
+
+
+                if (keyboardState.IsKeyDown(Keys.P))
+                {
+                    slimeState = SlimeAnimation.SlimeAttack;
+                }
+                
+                if(slimeAttacked)
+                {
+                    
+                    slimeAttackTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    if(slimeAttackTimer < 0f)
+                    {
+                        slimeAttacked = false;
+                    }
+                }
+
+                if (slimeReset && slimeCollisionRect.Intersects(slimeRangeRect))
+                {
+                    slimeFrame = 0;
+                    slimeReset = false;
+                }
+                if (!slimeCollisionRect.Intersects(slimeRangeRect))
+                {
+                    slimeReset = true;
+                }
+                if (slimeCollisionRect.Intersects(slimeRangeRect))
+                {
+                    slimeAttackState = true;
+                }
+                if (slimeAttackState)
+                {
+                    slimeState = SlimeAnimation.SlimeAttack;
+                    if (slimeFrame > 4)
+                    {
+                        slimeAttackCollision = true;
+                    }
+                    if (slimeFrameCheck)
+                    {
+                        slimeAttackState = false;
+                    }
+                }
+                if (!slimeAttackState)
+                {
+                    slimeState = SlimeAnimation.SlimeRunning;
+                }
+                if (slimeAttackCollision && playerCollisionRect.Intersects(slimeAttackRect) && slimeAttacked == false)
+                {
+                    playerHealth -= slimeDamage;
+                    slimeAttacked = true;
+                    slimeAttackTimer = 1f;
+                }
+
+                if (playerHealth <= 0)
+                {
+                    playerDied = true;
+                    screen = Screen.end;
+                }
+            }
+            if (screen == Screen.end)
+            {
+                KeyboardState keyboardState = Keyboard.GetState();
+                if (keyboardState.IsKeyDown(Keys.Space))
+                {
+                    Exit();
+                }
             }
             base.Update(gameTime);
         }
@@ -532,32 +603,64 @@ namespace spritesheet
         protected override void Draw(GameTime gameTime)
         {
             GraphicsDevice.Clear(Color.White);
+            if (screen == Screen.intro)
+            {
+                _spriteBatch.Begin();
 
-            _spriteBatch.Begin();
+                _spriteBatch.Draw(introTexture, window, Color.White);
+                _spriteBatch.Draw(rectangleTexture, introRect, Color.White * 0.8f);
+                _spriteBatch.DrawString(font, "Play", introVector, Color.Black);
+                
+                _spriteBatch.End();
+            }
+            if (screen == Screen.game)
+            {
 
-            int currentColumns = framesPerDirection[state][directionRow];
-            int currentRows = rowsPerState[state];
+                _spriteBatch.Begin();
 
-            int slimeColumns = slimeFramesPerDirection[slimeState][slimeDirectionRow];
-            int slimeRows = slimeRowsPerState[slimeState];
+                int currentColumns = framesPerDirection[state][directionRow];
+                int currentRows = rowsPerState[state];
 
-            _spriteBatch.Draw(backgroundTexture, window, Color.White);
+                int slimeColumns = slimeFramesPerDirection[slimeState][slimeDirectionRow];
+                int slimeRows = slimeRowsPerState[slimeState];
 
-            spritesheetManager.Draw(_spriteBatch, state, frame, playerDrawRect, directionRow, currentColumns, currentRows);
+                _spriteBatch.Draw(backgroundTexture, window, Color.White);
 
-            slimeManager.Draw(_spriteBatch, slimeState, slimeFrame, slimeDrawRect, slimeDirectionRow, slimeColumns, slimeRows);
+                spritesheetManager.Draw(_spriteBatch, state, frame, playerDrawRect, directionRow, currentColumns, currentRows);
 
-            _spriteBatch.Draw(rectangleTexture, playerCollisionRect, Color.Black * 0.4f);
+                slimeManager.Draw(_spriteBatch, slimeState, slimeFrame, slimeDrawRect, slimeDirectionRow, slimeColumns, slimeRows);
 
-            _spriteBatch.Draw(rectangleTexture, attackCollisionRect, Color.Black * 0.4f);
+                _spriteBatch.Draw(rectangleTexture, playerCollisionRect, Color.Black * 0.4f);
 
-            _spriteBatch.Draw(rectangleTexture, slimeRangeRect, Color.Black * 0.4f);
+                _spriteBatch.Draw(rectangleTexture, attackCollisionRect, Color.Black * 0.4f);
 
-            _spriteBatch.Draw(rectangleTexture, slimeCollisionRect, Color.Black * 0.4f);
+                _spriteBatch.Draw(rectangleTexture, slimeRangeRect, Color.Black * 0.4f);
 
-            _spriteBatch.Draw(rectangleTexture, slimeAttackRect, Color.Black * 0.4f);
-            _spriteBatch.End();
+                _spriteBatch.Draw(rectangleTexture, slimeCollisionRect, Color.Black * 0.4f);
 
+                _spriteBatch.Draw(rectangleTexture, slimeAttackRect, Color.Black * 0.4f);
+                _spriteBatch.End();
+            }
+            if (screen == Screen.end)
+            {
+
+                if (playerDied)
+                {
+                    endScreenMessage = "Byee";
+                }
+                else
+                {
+                    endScreenMessage = "LMAO";
+                }
+                    _spriteBatch.Begin();
+
+                _spriteBatch.Draw(introTexture, window, Color.White);
+                _spriteBatch.Draw(rectangleTexture, introRect, Color.White * 0.8f);
+                _spriteBatch.DrawString(font, endScreenMessage, introVector, Color.Black);
+
+
+                _spriteBatch.End();
+            }
         }
 
 
