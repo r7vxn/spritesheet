@@ -24,8 +24,8 @@ namespace spritesheet
         SlimeIdle = 0,
         SlimeRunning = 1,
         SlimeAttack = 2,
-        SlimeHurt = 3,
-        SlimeDeath = 4,
+        SlimeHurt = 4,
+        SlimeDeath = 3,
     }
 
     public class Game1 : Game
@@ -65,6 +65,11 @@ namespace spritesheet
         private int frame;
         private float time, frameSpeed = 0.1f, speed = 3f;
         private int frames;
+        private bool attackCollision;
+        private bool attacked;
+        private float attackTimer;
+        private float deathTimer;
+        private bool deathTimeReset;
 
         private SpritesheetDraw spritesheetDraw;
         private SpritesheetManager spritesheetManager;
@@ -90,9 +95,15 @@ namespace spritesheet
         private bool slimeFrameCheck = false;
         private bool slimeAttackCollision = false;
         private bool slimeAttacked = false;
-        private int slimeHealth;
+        private int slimeHealth = 15;
         private int slimeDamage;
         private float slimeAttackTimer;
+        private bool slimeDied = false;
+        private float slimeDeathTimer;
+        private bool slimeDeathTimeReset = false;
+        private bool slimeDeathTimeConfirm = false;
+        private bool slimeDeathFrameReset = false;
+        private bool slimeDeathFrameConfirm = false;
         
 
         private SlimeDraw slimeDraw;
@@ -125,7 +136,6 @@ namespace spritesheet
             _graphics.ApplyChanges();
 
             playerHealth = 15;
-            slimeHealth = 15;
             playerDamage = 5;
             slimeDamage = 3;
 
@@ -214,10 +224,10 @@ namespace spritesheet
             };
             slimeFramesPerDirection[SlimeAnimation.SlimeDeath] = new Dictionary<int, int>()
             {
-                { downRow, 9 },
-                { leftRow, 9 },
-                { rightRow, 9 },
-                { upRow, 9 }
+                { downRow, 10 },
+                { leftRow, 10 },
+                { rightRow, 10 },
+                { upRow, 10 }
             };
             slimeFramesPerDirection[SlimeAnimation.SlimeHurt] = new Dictionary<int, int>()
             {
@@ -334,6 +344,7 @@ namespace spritesheet
             {
                 Content.Load<Texture2D>("Slime1_Death_body"),
                 Content.Load<Texture2D>("Slime1_Death_shadow"),
+                Content.Load<Texture2D>("Slime1_Death")
             };
             var SlimeHurtspritesheets = new List<Texture2D>()
             {
@@ -531,11 +542,6 @@ namespace spritesheet
                 }
 
 
-
-                if (keyboardState.IsKeyDown(Keys.P))
-                {
-                    slimeState = SlimeAnimation.SlimeAttack;
-                }
                 
                 if(slimeAttacked)
                 {
@@ -588,11 +594,60 @@ namespace spritesheet
                     playerDied = true;
                     screen = Screen.end;
                 }
+
+
+                //Player attack codes
+                attackTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
+                deathTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+                if (attackTimer < 0)
+                {
+                    attacked = false;
+                }
+                
+                if (attack == true && frame>4 && attackCollisionRect.Intersects(slimeCollisionRect) && !attacked)
+                {
+                    attackCollision = true;
+                }
+                if (attackCollision)
+                {
+                    slimeHealth -= playerDamage;
+                    attackCollision = false;  
+                    attacked = true;
+                    attackTimer = 0.4f;
+                }
+                 if (slimeHealth < 0)
+                {
+                    slimeDeathFrameReset = true;
+                    if (slimeDeathFrameReset && !slimeDeathFrameConfirm)
+                    {
+                        slimeFrame = 0;
+                        slimeDeathFrameReset = false;
+                        slimeDeathFrameConfirm = true;
+                    }
+                    slimeState = SlimeAnimation.SlimeDeath;
+                    if (slimeFrame > 9)
+                    {
+                        slimeDied = true;
+                        slimeDeathTimeReset = true;
+                        if (slimeDeathTimeReset && !slimeDeathTimeConfirm)
+                        {
+                            slimeDeathTimer = 2f;
+                            slimeDeathTimeReset = false;
+                            slimeDeathTimeConfirm = true;
+                        }
+                    }
+                    if (slimeDied && slimeDeathTimer < 0)
+                    {
+                        screen = Screen.end;
+                    }
+                    
+                }
             }
             if (screen == Screen.end)
             {
                 KeyboardState keyboardState = Keyboard.GetState();
-                if (keyboardState.IsKeyDown(Keys.Space))
+                if (keyboardState.IsKeyDown(Keys.Enter))
                 {
                     Exit();
                 }
@@ -628,8 +683,11 @@ namespace spritesheet
 
                 spritesheetManager.Draw(_spriteBatch, state, frame, playerDrawRect, directionRow, currentColumns, currentRows);
 
-                slimeManager.Draw(_spriteBatch, slimeState, slimeFrame, slimeDrawRect, slimeDirectionRow, slimeColumns, slimeRows);
-
+                if (!slimeDied)
+                {
+                    slimeManager.Draw(_spriteBatch, slimeState, slimeFrame, slimeDrawRect, slimeDirectionRow, slimeColumns, slimeRows);
+                }
+                
                 _spriteBatch.Draw(rectangleTexture, playerCollisionRect, Color.Black * 0.4f);
 
                 _spriteBatch.Draw(rectangleTexture, attackCollisionRect, Color.Black * 0.4f);
@@ -643,8 +701,11 @@ namespace spritesheet
             }
             if (screen == Screen.end)
             {
-
-                if (!playerDied)
+                if (slimeDied)
+                {
+                    endScreenMessage = "Nice";
+                }
+                else if (!playerDied)
                 {
                     endScreenMessage = "Byee";
                 }

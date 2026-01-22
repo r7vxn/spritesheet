@@ -13,6 +13,13 @@
 
 #---------------------------------- Content ---------------------------------#
 
+#begin Font.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/build:Font.spritefont
+
 #begin forest background.png
 /importer:TextureImporter
 /processor:TextureProcessor
@@ -36,6 +43,9 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:forest intro.png
+
+#begin Minecraft.ttf
+/copy:Minecraft.ttf
 
 #begin rectangle.png
 /importer:TextureImporter
