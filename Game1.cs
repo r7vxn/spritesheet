@@ -644,7 +644,7 @@ namespace spritesheet
             if (screen == Screen.end)
             {
 
-                if (playerDied)
+                if (!playerDied)
                 {
                     endScreenMessage = "Byee";
                 }

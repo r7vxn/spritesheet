@@ -13,16 +13,6 @@
 
 #---------------------------------- Content ---------------------------------#
 
-#begin ../../../../../Downloads/Minecraft.ttf
-/copy:../../../../../Downloads/Minecraft.ttf;Minecraft.ttf
-
-#begin Font.spritefont
-/importer:FontDescriptionImporter
-/processor:FontDescriptionProcessor
-/processorParam:PremultiplyAlpha=True
-/processorParam:TextureFormat=Compressed
-/build:Font.spritefont
-
 #begin forest background.png
 /importer:TextureImporter
 /processor:TextureProcessor
