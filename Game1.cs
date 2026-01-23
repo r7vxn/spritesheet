@@ -1,6 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Media;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -109,6 +111,13 @@ namespace spritesheet
 
         private Screen screen;
 
+        Song song;
+        SoundEffect slimeJump;
+        SoundEffectInstance slimeJumpInstance;
+        SoundEffect slimeBeingSlashed;
+        SoundEffectInstance slimeBeingSlashInstance;
+        SoundEffect slimeHittingGround;
+        SoundEffectInstance slimeHittingGroundInstance;
 
         public Game1()
         {
@@ -121,6 +130,17 @@ namespace spritesheet
         {
             base.Initialize();
 
+            MediaPlayer.Play(song);
+            MediaPlayer.Volume = 0.18f;
+
+            slimeJumpInstance = slimeJump.CreateInstance();
+            slimeJumpInstance.Pitch = -0.2f;
+            slimeJumpInstance.Volume = 0.6f;
+
+            slimeBeingSlashInstance = slimeBeingSlashed.CreateInstance();
+            slimeJumpInstance.Volume = 0.6f;
+            slimeHittingGroundInstance = slimeHittingGround.CreateInstance();
+            slimeHittingGroundInstance.Volume = 0.6f;
 
             SetupCollision();
 
@@ -276,6 +296,8 @@ namespace spritesheet
 
         protected override void LoadContent()
         {
+
+
             _spriteBatch = new SpriteBatch(GraphicsDevice);
 
             var Idlespritesheets = new List<Texture2D>()
@@ -354,6 +376,10 @@ namespace spritesheet
             backgroundTexture = Content.Load<Texture2D>("forest background");
             introTexture = Content.Load<Texture2D>("forest intro");
             font = Content.Load<SpriteFont>("Font");
+            song = Content.Load<Song>("Forest Bgm");
+            slimeJump = Content.Load<SoundEffect>("slime jump");
+            slimeBeingSlashed = Content.Load<SoundEffect>("slime impact");
+            slimeHittingGround = Content.Load<SoundEffect>("slime hit ground");
 
             var wholelist = new List<List<Texture2D>>() { Idlespritesheets, Runningspritesheets, Attackspritesheets, Deathspritesheets, Hurtspritesheets };
             spritesheetManager = new SpritesheetManager(wholelist);
@@ -366,6 +392,20 @@ namespace spritesheet
 
         protected override void Update(GameTime gameTime)
         {
+            MediaPlayer.IsRepeating = true;
+
+            if (slimeFrame == 4 && slimeState == SlimeAnimation.SlimeRunning)
+            {
+                slimeJumpInstance.Play();
+            }
+            if (slimeFrame == 5 && slimeState == SlimeAnimation.SlimeAttack)
+            {
+                slimeHittingGroundInstance.Play();
+            }
+            if (attacked)
+            {
+                slimeBeingSlashInstance.Play();
+            }
             KeyboardState keyboardState = Keyboard.GetState();
             if (screen == Screen.intro)
             {
@@ -654,7 +694,7 @@ namespace spritesheet
 
                 //_spriteBatch.Draw(rectangleTexture, slimeAttackRect, Color.Black * 0.4f);
 
-                _spriteBatch.DrawString(font, slimeHealth.ToString(), new Vector2(0,0), Color.White);
+                //_spriteBatch.DrawString(font, slimeHealth.ToString(), new Vector2(0,0), Color.White);
                 _spriteBatch.End();
             }
             if (screen == Screen.end)

@@ -32,6 +32,12 @@
 /processorParam:TextureFormat=Color
 /build:forest background.png
 
+#begin Forest Bgm.mp3
+/importer:Mp3Importer
+/processor:SongProcessor
+/processorParam:Quality=Best
+/build:Forest Bgm.mp3
+
 #begin forest intro.png
 /importer:TextureImporter
 /processor:TextureProcessor
@@ -58,6 +64,24 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:rectangle.png
+
+#begin slime hit ground.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:slime hit ground.wav
+
+#begin slime impact.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:slime impact.wav
+
+#begin slime jump.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:slime jump.wav
 
 #begin Slime1_Attack_body.png
 /importer:TextureImporter
