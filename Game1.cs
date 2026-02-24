@@ -42,11 +42,11 @@ namespace spritesheet
         private GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
 
-        private Rectangle window = new Rectangle(0, 0, 960, 540);
+        private Rectangle window = new Rectangle(0, 0, 1920, 1080);
         private Texture2D rectangleTexture;
         private Texture2D backgroundTexture;
         private Texture2D introTexture;
-        private Rectangle introRect = new Rectangle(280, 220, 400, 100);
+        private Rectangle introRect = new Rectangle(560, 440, 800, 200);
         private SpriteFont font;
         private Vector2 introVector;
         private MouseState mouseState;
@@ -104,7 +104,7 @@ namespace spritesheet
         private bool slimeAttackStarted = false;
         private bool slimeDeathDraw = false;
 
-
+        private int resChange = 2;
 
         private SlimeDraw slimeDraw;
         private SlimeManager slimeManager;
@@ -146,11 +146,11 @@ namespace spritesheet
 
             screen = Screen.intro;
 
-            introVector.X = window.Width / 2 - 50;
-            introVector.Y = window.Height / 2 - 15;
+            introVector.X = window.Width / 2 - 100;
+            introVector.Y = window.Height / 2 - 40;
 
-            _graphics.PreferredBackBufferWidth = 960;
-            _graphics.PreferredBackBufferHeight = 540;
+            _graphics.PreferredBackBufferWidth = 1920;
+            _graphics.PreferredBackBufferHeight = 1080;
             _graphics.ApplyChanges();
 
             playerHealth = 15;
@@ -158,10 +158,11 @@ namespace spritesheet
             slimeDamage = 3;
 
             state = Animation.Idle;
-            playerLocation = new Vector2(460, 460);
+            playerLocation = new Vector2(920, 920);
             playerCollisionRect = new Rectangle(80, 60, 40, 70);
             attackCollisionRect = new Rectangle(0, 0, 0, 0);
-            playerDrawRect = new Rectangle(0, 0, 150, 150);
+
+            playerDrawRect = new Rectangle(0, 0, 225, 225);
             leftRow = 1;
             rightRow = 2;
             upRow = 0;
@@ -177,8 +178,8 @@ namespace spritesheet
             slimeUpRow = 1;
             slimeDownRow = 0;
             slimeDirectionRow = slimeDownRow;
-            slimeLocation = new Vector2(960 / 2, 540 / 2);
-            slimeDrawRect = new Rectangle(960 / 2, 540 / 2, 150, 150);
+            slimeLocation = new Vector2(960, 540);
+            slimeDrawRect = new Rectangle(960, 540 , 225, 225);
 
 
             framesPerDirection = new Dictionary<Animation, Dictionary<int, int>>();
@@ -281,10 +282,10 @@ namespace spritesheet
         private bool CanMoveTo(Vector2 newPosition)
         {
             Rectangle nextHitbox = new Rectangle(
-                (int)newPosition.X,
-                (int)newPosition.Y,
-                PLAYER_WIDTH,
-                PLAYER_HEIGHT
+                (int)newPosition.X + 45,
+                (int)newPosition.Y + 40,
+                30,
+                70
             );
 
             foreach (Rectangle barrier in airBarriers)
@@ -695,6 +696,11 @@ namespace spritesheet
                 //_spriteBatch.Draw(rectangleTexture, slimeAttackRect, Color.Black * 0.4f);
 
                 //_spriteBatch.DrawString(font, slimeHealth.ToString(), new Vector2(0,0), Color.White);
+
+                foreach (Rectangle barrier in airBarriers)
+                {
+                    _spriteBatch.Draw(rectangleTexture, barrier, Color.Red * 0.3f);
+                }
                 _spriteBatch.End();
             }
             if (screen == Screen.end)
@@ -726,24 +732,17 @@ namespace spritesheet
         private void SetupCollision()
         {
             // Map edges (prevent leaving screen)
-            airBarriers.Add(new Rectangle(0, 0, 45, 540));
-            airBarriers.Add(new Rectangle(0, 0, 960, 100));
-            airBarriers.Add(new Rectangle(0, 0, 200, 150));
-            airBarriers.Add(new Rectangle(890, 0, 75, 540));
-            airBarriers.Add(new Rectangle(0, 300, 200, 500));
-            airBarriers.Add(new Rectangle(0, 250, 140, 100));
-            airBarriers.Add(new Rectangle(0, 330, 300, 100));
-            airBarriers.Add(new Rectangle(0, 420, 400, 10));
-            airBarriers.Add(new Rectangle(0, 520, 320, 30));
-            airBarriers.Add(new Rectangle(0, 500, 260, 28));
-            airBarriers.Add(new Rectangle(0, 550, 960, 10));
-            airBarriers.Add(new Rectangle(730, 0, 200, 150));
-            airBarriers.Add(new Rectangle(0, 330, 370, 100));
-            airBarriers.Add(new Rectangle(630, 330, 370, 100));
-            airBarriers.Add(new Rectangle(720, 400, 200, 140));
-            airBarriers.Add(new Rectangle(820, 250, 200, 200));
-            airBarriers.Add(new Rectangle(670, 520, 260, 30));
-            airBarriers.Add(new Rectangle(550, 430, 400, 10));
+            airBarriers.Add(new Rectangle(0, 0, 20, 1080));
+            airBarriers.Add(new Rectangle(0, 0, 1920, 130));
+            airBarriers.Add(new Rectangle(0, 0, 370, 350));
+            airBarriers.Add(new Rectangle(1900, 0, 75, 1080));
+            airBarriers.Add(new Rectangle(0, 1080, 1920, 75));
+            airBarriers.Add(new Rectangle(1550, 0, 370, 370));
+            airBarriers.Add(new Rectangle(0, 890, 410, 370));
+            airBarriers.Add(new Rectangle(1500, 900, 430, 350));
+            airBarriers.Add(new Rectangle(0, 790, 525, 105));
+            airBarriers.Add(new Rectangle(525, 820, 120, 80));
+            airBarriers.Add(new Rectangle(645, 840, 160, 50));
         }
 
     }
