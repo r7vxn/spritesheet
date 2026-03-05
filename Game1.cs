@@ -39,77 +39,78 @@ namespace spritesheet
         List<Rectangle> airBarriers = new List<Rectangle>();
 
 
-        private GraphicsDeviceManager _graphics;
-        private SpriteBatch _spriteBatch;
+        GraphicsDeviceManager _graphics;
+        SpriteBatch _spriteBatch;
 
-        private Rectangle window = new Rectangle(0, 0, 1920, 1080);
-        private Texture2D rectangleTexture;
-        private Texture2D backgroundTexture;
-        private Texture2D introTexture;
-        private Rectangle introRect = new Rectangle(560, 440, 800, 200);
-        private SpriteFont font;
-        private Vector2 introVector;
-        private MouseState mouseState;
-        private bool playerDied = false;
-        private string endScreenMessage;
-
-
-
-        private Rectangle playerCollisionRect, playerDrawRect, attackCollisionRect;
-        private bool attack = false;
-        private int playerHealth;
-        private int playerDamage;
+        Rectangle window = new Rectangle(0, 0, 1920, 1080);
+        Texture2D rectangleTexture;
+        Texture2D backgroundTexture;
+        Texture2D introTexture;
+        Rectangle introRect = new Rectangle(560, 440, 800, 200);
+        SpriteFont font;
+        Vector2 introVector;
+        MouseState mouseState;
+        bool playerDied = false;
+        string endScreenMessage;
 
 
-        private Vector2 playerLocation;
-        private Vector2 playerDirection;
-        private int directionRow, leftRow, rightRow, upRow, downRow;
-        private Animation state;
-        private int frame;
-        private float time, frameSpeed = 0.1f, speed = 3f;
-        private int frames;
-        private bool attacked = false;
-        private float attackTimer;
 
-        private SpritesheetDraw spritesheetDraw;
-        private SpritesheetManager spritesheetManager;
-
-        private Dictionary<Animation, Dictionary<int, int>> framesPerDirection;
-        private Dictionary<Animation, int> rowsPerState;
+        Rectangle playerCollisionRect, playerDrawRect, attackCollisionRect;
+        bool attack = false;
+        int playerHealth;
+        int playerDamage;
 
 
-        private Dictionary<SlimeAnimation, Dictionary<int, int>> slimeFramesPerDirection;
-        private Dictionary<SlimeAnimation, int> slimeRowsPerState;
+        Vector2 playerLocation;
+        Vector2 playerDirection;
+        int directionRow, leftRow, rightRow, upRow, downRow;
+        Animation state;
+        int frame;
+        float time, frameSpeed = 0.1f, speed = 3f;
+        int frames;
+        bool attacked = false;
+        float attackTimer;
 
-        private Rectangle slimeRangeRect;
-        private Rectangle slimeDrawRect, slimeCollisionRect, slimeAttackRect;
-        private Vector2 slimeLocation;
-        private Vector2 slimeDirection;
-        private int slimeDirectionRow, slimeLeftRow, slimeRightRow, slimeUpRow, slimeDownRow;
-        private SlimeAnimation slimeState;
-        private int slimeFrame;
-        private float slimeTime, slimeFrameSpeed = 1f, slimeSpeed = 5f;
-        private int slimeFrames;
-        private bool slimeReset = true;
-        private bool slimeAttackState = false;
-        private bool slimeFrameCheck = false;
-        private bool slimeAttackCollision = false;
-        private bool slimeAttacked = false;
-        private int slimeHealth = 15;
-        private int slimeDamage;
-        private float slimeAttackTimer;
-        private bool slimeDied = false;
+        SpritesheetDraw spritesheetDraw;
+        SpritesheetManager spritesheetManager;
+
+        Dictionary<Animation, Dictionary<int, int>> framesPerDirection;
+        Dictionary<Animation, int> rowsPerState;
+
+
+        Dictionary<SlimeAnimation, Dictionary<int, int>> slimeFramesPerDirection;
+        Dictionary<SlimeAnimation, int> slimeRowsPerState;
+
+        Rectangle slimeRangeRect;
+        Rectangle slimeDrawRect, slimeCollisionRect, slimeAttackRect;
+        Vector2 slimeLocation;
+        Vector2 slimeDirection;
+        int slimeDirectionRow, slimeLeftRow, slimeRightRow, slimeUpRow, slimeDownRow;
+        SlimeAnimation slimeState;
+        int slimeFrame;
+        float slimeTime, slimeFrameSpeed = 1f, slimeSpeed = 5f;
+        int slimeFrames;
+        bool slimeReset = true;
+        bool slimeAttackState = false;
+        bool slimeFrameCheck = false;
+        bool slimeAttackCollision = false;
+        bool slimeAttacked = false;
+        int slimeHealth = 15;
+        int slimeDamage;
+        float slimeAttackTimer;
+        bool slimeDied = false;
         bool slimeDeathStarted = false;
         float endDelayTimer = 2f;
-        private bool slimeAttackStarted = false;
-        private bool slimeDeathDraw = false;
+        bool slimeAttackStarted = false;
+        bool slimeDeathDraw = false;
 
-        private int resChange = 2;
+        int resChange = 2;
 
-        private SlimeDraw slimeDraw;
-        private SlimeManager slimeManager;
+        SlimeDraw slimeDraw;
+        SlimeManager slimeManager;
+        SlimeSoundEffect slimeSoundEffect;
 
-        private Screen screen;
+        Screen screen;
 
         Song song;
         SoundEffect slimeJump;
@@ -385,6 +386,7 @@ namespace spritesheet
             var wholelist = new List<List<Texture2D>>() { Idlespritesheets, Runningspritesheets, Attackspritesheets, Deathspritesheets, Hurtspritesheets };
             spritesheetManager = new SpritesheetManager(wholelist);
             spritesheetDraw = new SpritesheetDraw(wholelist);
+            slimeSoundEffect = new SlimeSoundEffect();    
 
             var slimelist = new List<List<Texture2D>>() { SlimeIdlespritesheets, SlimeRunningspritesheets, SlimeAttackspritesheets, SlimeDeathspritesheets, SlimeHurtspritesheets };
             slimeDraw = new SlimeDraw(slimelist);
@@ -395,18 +397,8 @@ namespace spritesheet
         {
             MediaPlayer.IsRepeating = true;
 
-            if (slimeFrame == 4 && slimeState == SlimeAnimation.SlimeRunning)
-            {
-                slimeJumpInstance.Play();
-            }
-            if (slimeFrame == 5 && slimeState == SlimeAnimation.SlimeAttack)
-            {
-                slimeHittingGroundInstance.Play();
-            }
-            if (attacked)
-            {
-                slimeBeingSlashInstance.Play();
-            }
+            slimeSoundEffect.update(slimeFrame,slimeState,attacked,slimeJumpInstance,slimeHittingGroundInstance,slimeBeingSlashInstance);
+
             KeyboardState keyboardState = Keyboard.GetState();
             if (screen == Screen.intro)
             {
