@@ -81,8 +81,7 @@ namespace spritesheet
         Dictionary<SlimeAnimation, Dictionary<int, int>> slimeFramesPerDirection;
         Dictionary<SlimeAnimation, int> slimeRowsPerState;
 
-        Rectangle slimeRangeRect;
-        Rectangle slimeDrawRect, slimeCollisionRect, slimeAttackRect;
+        Rectangle slimeCollisionRect, slimeAttackRect, slimeRangeRect, slimeDrawRect;
         Vector2 slimeLocation;
         Vector2 slimeDirection;
         int slimeDirectionRow, slimeLeftRow, slimeRightRow, slimeUpRow, slimeDownRow;
@@ -109,6 +108,7 @@ namespace spritesheet
         SlimeDraw slimeDraw;
         SlimeManager slimeManager;
         SlimeSoundEffect slimeSoundEffect;
+        SlimeAnimationClass slimeAnimationClass;
 
         Screen screen;
 
@@ -173,14 +173,14 @@ namespace spritesheet
             slimeRangeRect = new Rectangle(0, 0, 70, 80);
             slimeCollisionRect = new Rectangle(0, 0, 50, 50);
             slimeAttackRect = new Rectangle(0, 0, 45, 20);
-            slimeState = SlimeAnimation.SlimeIdle;
-            slimeLeftRow = 2;
-            slimeRightRow = 3;
-            slimeUpRow = 1;
-            slimeDownRow = 0;
-            slimeDirectionRow = slimeDownRow;
-            slimeLocation = new Vector2(960, 540);
-            slimeDrawRect = new Rectangle(960, 540 , 225, 225);
+            //slimeState = SlimeAnimation.SlimeIdle;
+            //slimeLeftRow = 2;
+            //slimeRightRow = 3;
+            //slimeUpRow = 1;
+            //slimeDownRow = 0;
+            //slimeDirectionRow = slimeDownRow;
+            //slimeLocation = new Vector2(960, 540);
+            slimeDrawRect = new Rectangle(960, 540, 225, 225);
 
 
             framesPerDirection = new Dictionary<Animation, Dictionary<int, int>>();
@@ -385,12 +385,15 @@ namespace spritesheet
 
             var wholelist = new List<List<Texture2D>>() { Idlespritesheets, Runningspritesheets, Attackspritesheets, Deathspritesheets, Hurtspritesheets };
             spritesheetManager = new SpritesheetManager(wholelist);
-            spritesheetDraw = new SpritesheetDraw(wholelist);
-            slimeSoundEffect = new SlimeSoundEffect();    
-
+            spritesheetDraw = new SpritesheetDraw(wholelist);  
+         
             var slimelist = new List<List<Texture2D>>() { SlimeIdlespritesheets, SlimeRunningspritesheets, SlimeAttackspritesheets, SlimeDeathspritesheets, SlimeHurtspritesheets };
             slimeDraw = new SlimeDraw(slimelist);
             slimeManager = new SlimeManager(slimelist);
+            slimeSoundEffect = new SlimeSoundEffect();
+            slimeAnimationClass = new SlimeAnimationClass();
+            slimeAnimationClass.Initialize();
+
         }
 
         protected override void Update(GameTime gameTime)
@@ -410,20 +413,32 @@ namespace spritesheet
             }
             if (screen == Screen.game)
             {
+                // Update slime internal state
+                slimeAnimationClass.update(gameTime, playerCollisionRect, playerLocation, slimeFramesPerDirection);
 
+                // Read back slime state into Game1 fields (so existing Game1 logic continues to work)
+                slimeState = slimeAnimationClass.CurrentState;
+                slimeFrame = slimeAnimationClass.CurrentFrame;
+                slimeDirectionRow = slimeAnimationClass.CurrentDirectionRow;
+                slimeCollisionRect = slimeAnimationClass.CurrentCollisionRect;
+                slimeDrawRect = slimeAnimationClass.CurrentDrawRect;
+                slimeAttackRect = slimeAnimationClass.CurrentAttackRect;
+                slimeAttackCollision = slimeAnimationClass.CurrentAttackCollision;
+                slimeDied = slimeAnimationClass.IsDead;
+                slimeDeathDraw = slimeAnimationClass.DeathDraw;
                 //slime's painful dying process
 
-                if (slimeHealth <= 0 && !slimeDeathStarted)
-                {
-                    slimeDied = true;
-                    slimeDeathStarted = true;
-                    slimeState = SlimeAnimation.SlimeDeath;
-                }
-                if (slimeState == SlimeAnimation.SlimeDeath && slimeReset)
-                {
-                    slimeFrame = 0;
-                    slimeReset = false;
-                }
+                //if (slimeHealth <= 0 && !slimeDeathStarted)
+                //{
+                //    slimeDied = true;
+                //    slimeDeathStarted = true;
+                //    slimeState = SlimeAnimation.SlimeDeath;
+                //}
+                //if (slimeState == SlimeAnimation.SlimeDeath && slimeReset)
+                //{
+                //    slimeFrame = 0;
+                //    slimeReset = false;
+                //}
                 playerDirection = Vector2.Zero;
                 if (keyboardState.IsKeyDown(Keys.W)) playerDirection.Y -= 3;
                 if (keyboardState.IsKeyDown(Keys.S)) playerDirection.Y += 3;
@@ -502,117 +517,117 @@ namespace spritesheet
                     screen = Screen.end;
                 }
 
-                //slime logic
-                if (slimeDied)
-                {
-                    endDelayTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
-                    if (endDelayTimer <= 0f)
-                        screen = Screen.end;
-                }
+                ////slime logic
+                //if (slimeDied)
+                //{
+                //    endDelayTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
+                //    if (endDelayTimer <= 0f)
+                //        screen = Screen.end;
+                //}
 
-                slimeRangeRect.X = playerCollisionRect.X - 15;
-                slimeRangeRect.Y = playerCollisionRect.Y - 5;
+                //slimeRangeRect.X = playerCollisionRect.X - 15;
+                //slimeRangeRect.Y = playerCollisionRect.Y - 5;
 
-                slimeCollisionRect.Location = slimeLocation.ToPoint();
-                slimeCollisionRect.X = slimeDrawRect.X + 50;
-                slimeCollisionRect.Y = slimeDrawRect.Y + 50;
+                //slimeCollisionRect.Location = slimeLocation.ToPoint();
+                //slimeCollisionRect.X = slimeDrawRect.X + 50;
+                //slimeCollisionRect.Y = slimeDrawRect.Y + 50;
 
-                slimeDrawRect.X = (int)slimeLocation.X - 55;
-                slimeDrawRect.Y = (int)slimeLocation.Y - 50;
+                //slimeDrawRect.X = (int)slimeLocation.X - 55;
+                //slimeDrawRect.Y = (int)slimeLocation.Y - 50;
 
-                slimeAttackRect.Location = slimeLocation.ToPoint();
-                slimeAttackRect.X = (int)slimeLocation.X;
-                slimeAttackRect.Y = (int)slimeLocation.Y + 23;
+                //slimeAttackRect.Location = slimeLocation.ToPoint();
+                //slimeAttackRect.X = (int)slimeLocation.X;
+                //slimeAttackRect.Y = (int)slimeLocation.Y + 23;
 
-                //slime movement
-                if (!slimeDeathStarted && !slimeAttackState)
-                {
-                    if (!slimeAttackState && !slimeDeathStarted)
-                        slimeLocation += slimeDirection * slimeSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds;
+                ////slime movement
+                //if (!slimeDeathStarted && !slimeAttackState)
+                //{
+                //    if (!slimeAttackState && !slimeDeathStarted)
+                //        slimeLocation += slimeDirection * slimeSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-                        slimeDirection = playerLocation - slimeLocation;
+                //        slimeDirection = playerLocation - slimeLocation;
 
-                    if (slimeDirection != Vector2.Zero)
-                    {
-                        slimeDirection.Normalize();
-                        slimeLocation += slimeDirection * slimeSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds;
+                //    if (slimeDirection != Vector2.Zero)
+                //    {
+                //        slimeDirection.Normalize();
+                //        slimeLocation += slimeDirection * slimeSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-                        //slime direction
-                        if (Math.Abs(slimeDirection.X) > Math.Abs(slimeDirection.Y))
-                            slimeDirectionRow = (slimeDirection.X > 0) ? slimeRightRow : slimeLeftRow;
-                        else
-                            slimeDirectionRow = (slimeDirection.Y > 0) ? slimeDownRow : slimeUpRow;
+                //        //slime direction
+                //        if (Math.Abs(slimeDirection.X) > Math.Abs(slimeDirection.Y))
+                //            slimeDirectionRow = (slimeDirection.X > 0) ? slimeRightRow : slimeLeftRow;
+                //        else
+                //            slimeDirectionRow = (slimeDirection.Y > 0) ? slimeDownRow : slimeUpRow;
 
 
-                    }
-                }
+                //    }
+                //}
 
-                //slime animation
-                slimeFrames = slimeFramesPerDirection[slimeState][slimeDirectionRow];
-                slimeFrameSpeed = 0.12f;
-                slimeTime += (float)gameTime.ElapsedGameTime.TotalSeconds;
+                ////slime animation
+                //slimeFrames = slimeFramesPerDirection[slimeState][slimeDirectionRow];
+                //slimeFrameSpeed = 0.12f;
+                //slimeTime += (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-                if (slimeState == SlimeAnimation.SlimeDeath)
-                {
-                    if (slimeTime > slimeFrameSpeed)
-                    {
-                        if (slimeFrame < slimeFrames - 1)
-                        { 
-                            slimeFrame++;
-                        }
-                        slimeTime = 0f;
+                //if (slimeState == SlimeAnimation.SlimeDeath)
+                //{
+                //    if (slimeTime > slimeFrameSpeed)
+                //    {
+                //        if (slimeFrame < slimeFrames - 1)
+                //        { 
+                //            slimeFrame++;
+                //        }
+                //        slimeTime = 0f;
                         
-                    }
+                //    }
 
-                }
-                else if (slimeTime > slimeFrameSpeed)
-                {
-                    slimeTime = 0f;
-                    slimeFrame++;
+                //}
+                //else if (slimeTime > slimeFrameSpeed)
+                //{
+                //    slimeTime = 0f;
+                //    slimeFrame++;
 
-                    if (slimeState != SlimeAnimation.SlimeAttack)
-                    {
-                        if (slimeFrame >= slimeFrames)
-                        {
-                            slimeFrame = 0;
-                            slimeFrameCheck = true;
-                        }
-                    }
-                }
+                //    if (slimeState != SlimeAnimation.SlimeAttack)
+                //    {
+                //        if (slimeFrame >= slimeFrames)
+                //        {
+                //            slimeFrame = 0;
+                //            slimeFrameCheck = true;
+                //        }
+                //    }
+                //}
 
-                //slime attack logic
-                if (!slimeDied)
-                {
-                    if (slimeCollisionRect.Intersects(slimeRangeRect))
-                    {
-                        slimeAttackState = true;
-                    }
+                ////slime attack logic
+                //if (!slimeDied)
+                //{
+                //    if (slimeCollisionRect.Intersects(slimeRangeRect))
+                //    {
+                //        slimeAttackState = true;
+                //    }
 
-                    if (slimeAttackState)
-                    {
-                        if (!slimeAttackStarted)
-                        {
-                            slimeFrame = 0;
-                            slimeAttackStarted = true;
-                        }
+                //    if (slimeAttackState)
+                //    {
+                //        if (!slimeAttackStarted)
+                //        {
+                //            slimeFrame = 0;
+                //            slimeAttackStarted = true;
+                //        }
 
-                        slimeState = SlimeAnimation.SlimeAttack;
+                //        slimeState = SlimeAnimation.SlimeAttack;
 
-                        if (slimeFrame > 4)
-                            slimeAttackCollision = true;
+                //        if (slimeFrame > 4)
+                //            slimeAttackCollision = true;
 
-                        if (slimeFrame >= slimeFrames - 1)
-                        {
-                            slimeAttackState = false;
-                            slimeAttackStarted = false;
-                            slimeFrame = 0;
-                        }
-                    }
-                    else if (!slimeDeathStarted)
-                    {
-                        slimeState = SlimeAnimation.SlimeRunning;
-                    }
-                }
+                //        if (slimeFrame >= slimeFrames - 1)
+                //        {
+                //            slimeAttackState = false;
+                //            slimeAttackStarted = false;
+                //            slimeFrame = 0;
+                //        }
+                //    }
+                //    else if (!slimeDeathStarted)
+                //    {
+                //        slimeState = SlimeAnimation.SlimeRunning;
+                //    }
+                //}
 
                 //dmg to player
                 if (slimeAttackCollision && playerCollisionRect.Intersects(slimeAttackRect) && !slimeAttacked)
