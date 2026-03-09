@@ -52,13 +52,14 @@ namespace spritesheet
         MouseState mouseState;
         bool playerDied = false;
         string endScreenMessage;
+        // runtime debug
+        string debugMessage = null;
+        bool hasLoadError = false;
 
 
 
         Rectangle playerCollisionRect, playerDrawRect, attackCollisionRect;
         bool attack = false;
-        int playerHealth;
-        int playerDamage;
 
 
         Vector2 playerLocation;
@@ -81,27 +82,9 @@ namespace spritesheet
         Dictionary<SlimeAnimation, Dictionary<int, int>> slimeFramesPerDirection;
         Dictionary<SlimeAnimation, int> slimeRowsPerState;
 
-        Rectangle slimeCollisionRect, slimeAttackRect, slimeRangeRect, slimeDrawRect;
-        Vector2 slimeLocation;
-        Vector2 slimeDirection;
-        int slimeDirectionRow, slimeLeftRow, slimeRightRow, slimeUpRow, slimeDownRow;
-        SlimeAnimation slimeState;
-        int slimeFrame;
-        float slimeTime, slimeFrameSpeed = 1f, slimeSpeed = 5f;
-        int slimeFrames;
-        bool slimeReset = true;
-        bool slimeAttackState = false;
-        bool slimeFrameCheck = false;
-        bool slimeAttackCollision = false;
+        // slime state is managed by SlimeAnimationClass; Game1 keeps only the player-facing cooldown
         bool slimeAttacked = false;
-        int slimeHealth = 15;
-        int slimeDamage;
         float slimeAttackTimer;
-        bool slimeDied = false;
-        bool slimeDeathStarted = false;
-        float endDelayTimer = 2f;
-        bool slimeAttackStarted = false;
-        bool slimeDeathDraw = false;
 
         int resChange = 2;
 
@@ -109,6 +92,10 @@ namespace spritesheet
         SlimeManager slimeManager;
         SlimeSoundEffect slimeSoundEffect;
         SlimeAnimationClass slimeAnimationClass;
+
+        PlayerAttack playerAttack;
+        PlayerAnimationClass playerAnimation;
+        PlayerManager playerManager;
 
         Screen screen;
 
@@ -131,18 +118,7 @@ namespace spritesheet
         {
             base.Initialize();
 
-            MediaPlayer.Play(song);
-            MediaPlayer.Volume = 0.18f;
-
-            slimeJumpInstance = slimeJump.CreateInstance();
-            slimeJumpInstance.Pitch = -0.2f;
-            slimeJumpInstance.Volume = 0.6f;
-
-            slimeBeingSlashInstance = slimeBeingSlashed.CreateInstance();
-            slimeJumpInstance.Volume = 0.6f;
-            slimeHittingGroundInstance = slimeHittingGround.CreateInstance();
-            slimeHittingGroundInstance.Volume = 0.6f;
-
+            // Defer audio playback and SoundEffectInstance creation until assets are loaded in LoadContent
             SetupCollision();
 
             screen = Screen.intro;
@@ -154,9 +130,6 @@ namespace spritesheet
             _graphics.PreferredBackBufferHeight = 1080;
             _graphics.ApplyChanges();
 
-            playerHealth = 15;
-            playerDamage = 5;
-            slimeDamage = 3;
 
             state = Animation.Idle;
             playerLocation = new Vector2(920, 920);
@@ -170,17 +143,14 @@ namespace spritesheet
             downRow = 3;
             directionRow = downRow;
 
-            slimeRangeRect = new Rectangle(0, 0, 70, 80);
-            slimeCollisionRect = new Rectangle(0, 0, 50, 50);
-            slimeAttackRect = new Rectangle(0, 0, 45, 20);
-            //slimeState = SlimeAnimation.SlimeIdle;
+            // Slime rects/state are managed by SlimeAnimationClass
             //slimeLeftRow = 2;
             //slimeRightRow = 3;
             //slimeUpRow = 1;
             //slimeDownRow = 0;
             //slimeDirectionRow = slimeDownRow;
             //slimeLocation = new Vector2(960, 540);
-            slimeDrawRect = new Rectangle(960, 540, 225, 225);
+            // Slime draw rect is managed by SlimeAnimationClass
 
 
             framesPerDirection = new Dictionary<Animation, Dictionary<int, int>>();
@@ -298,18 +268,18 @@ namespace spritesheet
 
         protected override void LoadContent()
         {
-
-
             _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-            var Idlespritesheets = new List<Texture2D>()
+            try
             {
-                Content.Load<Texture2D>("Swordsman_lvl1_Idle_body"),
-                Content.Load<Texture2D>("Swordsman_lvl1_Idle_head"),
-                Content.Load<Texture2D>("Swordsman_lvl1_Idle_shadow"),
-                Content.Load<Texture2D>("Swordsman_lvl1_Idle_sword"),
-                Content.Load<Texture2D>("Swordsman_lvl1_Idle_sword_back")
-            };
+                var Idlespritesheets = new List<Texture2D>()
+                {
+                    Content.Load<Texture2D>("Swordsman_lvl1_Idle_body"),
+                    Content.Load<Texture2D>("Swordsman_lvl1_Idle_head"),
+                    Content.Load<Texture2D>("Swordsman_lvl1_Idle_shadow"),
+                    Content.Load<Texture2D>("Swordsman_lvl1_Idle_sword"),
+                    Content.Load<Texture2D>("Swordsman_lvl1_Idle_sword_back")
+                };
 
             var Runningspritesheets = new List<Texture2D>()
             {
@@ -383,24 +353,57 @@ namespace spritesheet
             slimeBeingSlashed = Content.Load<SoundEffect>("slime impact");
             slimeHittingGround = Content.Load<SoundEffect>("slime hit ground");
 
+            // Audio setup: create instances and start background music now that assets are loaded
+            MediaPlayer.Play(song);
+            MediaPlayer.Volume = 0.18f;
+
+            slimeJumpInstance = slimeJump.CreateInstance();
+            slimeJumpInstance.Pitch = -0.2f;
+            slimeJumpInstance.Volume = 0.6f;
+
+            slimeBeingSlashInstance = slimeBeingSlashed.CreateInstance();
+            slimeBeingSlashInstance.Volume = 0.6f;
+
+            slimeHittingGroundInstance = slimeHittingGround.CreateInstance();
+            slimeHittingGroundInstance.Volume = 0.6f;
+
+            // create a player hurt sound instance (reuse slime impact if no separate asset)
+            var playerHurtInstance = slimeBeingSlashed.CreateInstance();
+            playerHurtInstance.Volume = 0.6f;
+
             var wholelist = new List<List<Texture2D>>() { Idlespritesheets, Runningspritesheets, Attackspritesheets, Deathspritesheets, Hurtspritesheets };
             spritesheetManager = new SpritesheetManager(wholelist);
             spritesheetDraw = new SpritesheetDraw(wholelist);  
+            
+            // player manager will use the spritesheet manager and frame dictionaries to render the player
+            playerManager = new PlayerManager(spritesheetManager, framesPerDirection, rowsPerState);
          
             var slimelist = new List<List<Texture2D>>() { SlimeIdlespritesheets, SlimeRunningspritesheets, SlimeAttackspritesheets, SlimeDeathspritesheets, SlimeHurtspritesheets };
             slimeDraw = new SlimeDraw(slimelist);
             slimeManager = new SlimeManager(slimelist);
             slimeSoundEffect = new SlimeSoundEffect();
-            slimeAnimationClass = new SlimeAnimationClass();
-            slimeAnimationClass.Initialize();
+                slimeAnimationClass = new SlimeAnimationClass();
+                slimeAnimationClass.Initialize();
+
+                playerAnimation = new PlayerAnimationClass();
+                playerAnimation.Initialize(leftRow, rightRow, upRow, downRow, new Vector2(920, 920), 15, 5);
+                // set hurt sound for player animation
+                playerAnimation.SetHurtSoundInstance(playerHurtInstance);
+
+                playerAttack = new PlayerAttack();
+            }
+            catch (System.Exception ex)
+            {
+                // capture load error so it can be displayed on-screen
+                debugMessage = "LoadContent error: " + ex.Message + "\n" + ex.StackTrace;
+                hasLoadError = true;
+            }
 
         }
 
         protected override void Update(GameTime gameTime)
         {
             MediaPlayer.IsRepeating = true;
-
-            slimeSoundEffect.update(slimeFrame,slimeState,attacked,slimeJumpInstance,slimeHittingGroundInstance,slimeBeingSlashInstance);
 
             KeyboardState keyboardState = Keyboard.GetState();
             if (screen == Screen.intro)
@@ -413,226 +416,44 @@ namespace spritesheet
             }
             if (screen == Screen.game)
             {
-                // Update slime internal state
-                slimeAnimationClass.update(gameTime, playerCollisionRect, playerLocation, slimeFramesPerDirection);
+                // Update slime internal state (pass map barriers so slime can't walk through them)
+                slimeAnimationClass.update(gameTime, playerAnimation.CurrentCollisionRect, playerAnimation.CurrentLocation, slimeFramesPerDirection, airBarriers);
 
-                // Read back slime state into Game1 fields (so existing Game1 logic continues to work)
-                slimeState = slimeAnimationClass.CurrentState;
-                slimeFrame = slimeAnimationClass.CurrentFrame;
-                slimeDirectionRow = slimeAnimationClass.CurrentDirectionRow;
-                slimeCollisionRect = slimeAnimationClass.CurrentCollisionRect;
-                slimeDrawRect = slimeAnimationClass.CurrentDrawRect;
-                slimeAttackRect = slimeAnimationClass.CurrentAttackRect;
-                slimeAttackCollision = slimeAnimationClass.CurrentAttackCollision;
-                slimeDied = slimeAnimationClass.IsDead;
-                slimeDeathDraw = slimeAnimationClass.DeathDraw;
-                //slime's painful dying process
+                // Update player movement and animation (handles setting CurrentState, CurrentFrame, CurrentDirectionRow, and attack rect)
+                playerAnimation.Update(gameTime, keyboardState, framesPerDirection, rowsPerState, airBarriers);
 
-                //if (slimeHealth <= 0 && !slimeDeathStarted)
-                //{
-                //    slimeDied = true;
-                //    slimeDeathStarted = true;
-                //    slimeState = SlimeAnimation.SlimeDeath;
-                //}
-                //if (slimeState == SlimeAnimation.SlimeDeath && slimeReset)
-                //{
-                //    slimeFrame = 0;
-                //    slimeReset = false;
-                //}
-                playerDirection = Vector2.Zero;
-                if (keyboardState.IsKeyDown(Keys.W)) playerDirection.Y -= 3;
-                if (keyboardState.IsKeyDown(Keys.S)) playerDirection.Y += 3;
-                if (keyboardState.IsKeyDown(Keys.A)) playerDirection.X -= 3;
-                if (keyboardState.IsKeyDown(Keys.D)) playerDirection.X += 3;
-
-                if (playerDirection != Vector2.Zero)
+                // player attack handling (apply damage once per attack frame)
+                if (playerAnimation.CurrentState == Animation.Attack)
                 {
-                    playerDirection = Vector2.Normalize(playerDirection);
-                    state = Animation.Running;
-                }
-                else
-                {
-                    state = Animation.Idle;
-                }
-
-                //attack collision
-                if (keyboardState.IsKeyDown(Keys.Space))
-                {
-                    state = Animation.Attack;
-                    attack = true;
-
-                    if (directionRow == upRow) attackCollisionRect = new Rectangle(playerDrawRect.X + 35, playerDrawRect.Y + 95, 80, 40);
-                    else if (directionRow == leftRow) attackCollisionRect = new Rectangle(playerDrawRect.X + 20, playerDrawRect.Y + 35, 40, 80);
-                    else if (directionRow == rightRow) attackCollisionRect = new Rectangle(playerDrawRect.X + 90, playerDrawRect.Y + 35, 40, 80);
-                    else if (directionRow == downRow) attackCollisionRect = new Rectangle(playerDrawRect.X + 35, playerDrawRect.Y + 20, 80, 40);
-                }
-                else if (keyboardState.IsKeyDown(Keys.R)) state = Animation.Death;
-                else if (keyboardState.IsKeyDown(Keys.Q)) state = Animation.Hurt;
-
-                // Set player facing direction
-                if (playerDirection.X < 0) directionRow = leftRow;
-                else if (playerDirection.X > 0) directionRow = rightRow;
-                else if (playerDirection.Y < 0) directionRow = downRow;
-                else if (playerDirection.Y > 0) directionRow = upRow;
-
-                //collision
-                Vector2 newPosX = playerLocation + new Vector2(playerDirection.X * speed, 0);
-                if (CanMoveTo(newPosX)) playerLocation = newPosX;
-
-                Vector2 newPosY = playerLocation + new Vector2(0, playerDirection.Y * speed);
-                if (CanMoveTo(newPosY)) playerLocation = newPosY;
-
-                playerCollisionRect.Location = playerLocation.ToPoint();
-                playerDrawRect.X = playerCollisionRect.X - 55;
-                playerDrawRect.Y = playerCollisionRect.Y - 40;
-
-                //animation
-                frames = framesPerDirection[state][directionRow];
-                frameSpeed = (state == Animation.Attack) ? 0.08f : (state == Animation.Idle && directionRow == downRow) ? 0.3f : 0.12f;
-
-                time += (float)gameTime.ElapsedGameTime.TotalSeconds;
-                if (time > frameSpeed)
-                {
-                    time = 0f;
-                    frame++;
-                    if (frame >= frames) frame = 0;
-                }
-                //player attack
-
-                if (state == Animation.Attack)
-                {
-                    if (frame == 4 && !attacked && slimeCollisionRect.Intersects(attackCollisionRect)) 
+                    if (!attacked && playerAttack.TryApplyAttack(playerAnimation.CurrentFrame, playerAnimation.CurrentAttackRect, slimeAnimationClass, playerAnimation.CurrentDamage))
                     {
-                        slimeHealth -= playerDamage;
                         attacked = true;
                     }
-                    if (frame == 0) attacked = false; 
+                    if (playerAnimation.CurrentFrame == 0) attacked = false;
                 }
 
+                // update sounds after slime/player attack state is determined
+                slimeSoundEffect.update(slimeAnimationClass.CurrentFrame, slimeAnimationClass.CurrentState, attacked, slimeJumpInstance, slimeHittingGroundInstance, slimeBeingSlashInstance);
 
-                //player death
-                if (playerHealth <= 0)
+                 //player death
+                if (playerAnimation.CurrentHealth <= 0)
+                 {
+                     playerDied = true;
+                     screen = Screen.end;
+                 }
+
+                // dmg to player (use slimeAnimationClass properties)
+                if (slimeAnimationClass.CurrentAttackCollision && playerAnimation.CurrentCollisionRect.Intersects(slimeAnimationClass.CurrentAttackRect) && !slimeAttacked)
                 {
-                    playerDied = true;
-                    screen = Screen.end;
-                }
+                    // apply knockback away from slime center
+                    var slimeCenter = new Vector2(slimeAnimationClass.CurrentDrawRect.X + slimeAnimationClass.CurrentDrawRect.Width / 2, slimeAnimationClass.CurrentDrawRect.Y + slimeAnimationClass.CurrentDrawRect.Height / 2);
+                    var knockbackDir = playerAnimation.CurrentLocation - slimeCenter;
+                    if (knockbackDir != Vector2.Zero) knockbackDir.Normalize();
+                    var knockback = knockbackDir * 30f; // pixels of immediate knockback
 
-                ////slime logic
-                //if (slimeDied)
-                //{
-                //    endDelayTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
-                //    if (endDelayTimer <= 0f)
-                //        screen = Screen.end;
-                //}
+                    // delegate damage + knockback to player animation class
+                    playerAnimation.ApplyDamage(slimeAnimationClass.CurrentDamage, knockback);
 
-                //slimeRangeRect.X = playerCollisionRect.X - 15;
-                //slimeRangeRect.Y = playerCollisionRect.Y - 5;
-
-                //slimeCollisionRect.Location = slimeLocation.ToPoint();
-                //slimeCollisionRect.X = slimeDrawRect.X + 50;
-                //slimeCollisionRect.Y = slimeDrawRect.Y + 50;
-
-                //slimeDrawRect.X = (int)slimeLocation.X - 55;
-                //slimeDrawRect.Y = (int)slimeLocation.Y - 50;
-
-                //slimeAttackRect.Location = slimeLocation.ToPoint();
-                //slimeAttackRect.X = (int)slimeLocation.X;
-                //slimeAttackRect.Y = (int)slimeLocation.Y + 23;
-
-                ////slime movement
-                //if (!slimeDeathStarted && !slimeAttackState)
-                //{
-                //    if (!slimeAttackState && !slimeDeathStarted)
-                //        slimeLocation += slimeDirection * slimeSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds;
-
-                //        slimeDirection = playerLocation - slimeLocation;
-
-                //    if (slimeDirection != Vector2.Zero)
-                //    {
-                //        slimeDirection.Normalize();
-                //        slimeLocation += slimeDirection * slimeSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds;
-
-                //        //slime direction
-                //        if (Math.Abs(slimeDirection.X) > Math.Abs(slimeDirection.Y))
-                //            slimeDirectionRow = (slimeDirection.X > 0) ? slimeRightRow : slimeLeftRow;
-                //        else
-                //            slimeDirectionRow = (slimeDirection.Y > 0) ? slimeDownRow : slimeUpRow;
-
-
-                //    }
-                //}
-
-                ////slime animation
-                //slimeFrames = slimeFramesPerDirection[slimeState][slimeDirectionRow];
-                //slimeFrameSpeed = 0.12f;
-                //slimeTime += (float)gameTime.ElapsedGameTime.TotalSeconds;
-
-                //if (slimeState == SlimeAnimation.SlimeDeath)
-                //{
-                //    if (slimeTime > slimeFrameSpeed)
-                //    {
-                //        if (slimeFrame < slimeFrames - 1)
-                //        { 
-                //            slimeFrame++;
-                //        }
-                //        slimeTime = 0f;
-                        
-                //    }
-
-                //}
-                //else if (slimeTime > slimeFrameSpeed)
-                //{
-                //    slimeTime = 0f;
-                //    slimeFrame++;
-
-                //    if (slimeState != SlimeAnimation.SlimeAttack)
-                //    {
-                //        if (slimeFrame >= slimeFrames)
-                //        {
-                //            slimeFrame = 0;
-                //            slimeFrameCheck = true;
-                //        }
-                //    }
-                //}
-
-                ////slime attack logic
-                //if (!slimeDied)
-                //{
-                //    if (slimeCollisionRect.Intersects(slimeRangeRect))
-                //    {
-                //        slimeAttackState = true;
-                //    }
-
-                //    if (slimeAttackState)
-                //    {
-                //        if (!slimeAttackStarted)
-                //        {
-                //            slimeFrame = 0;
-                //            slimeAttackStarted = true;
-                //        }
-
-                //        slimeState = SlimeAnimation.SlimeAttack;
-
-                //        if (slimeFrame > 4)
-                //            slimeAttackCollision = true;
-
-                //        if (slimeFrame >= slimeFrames - 1)
-                //        {
-                //            slimeAttackState = false;
-                //            slimeAttackStarted = false;
-                //            slimeFrame = 0;
-                //        }
-                //    }
-                //    else if (!slimeDeathStarted)
-                //    {
-                //        slimeState = SlimeAnimation.SlimeRunning;
-                //    }
-                //}
-
-                //dmg to player
-                if (slimeAttackCollision && playerCollisionRect.Intersects(slimeAttackRect) && !slimeAttacked)
-                {
-                    playerHealth -= slimeDamage;
                     slimeAttacked = true;
                     slimeAttackTimer = 1f;
                 }
@@ -662,6 +483,14 @@ namespace spritesheet
         protected override void Draw(GameTime gameTime)
         {
             GraphicsDevice.Clear(Color.White);
+            // If there was a LoadContent error, show it and stop normal drawing
+            if (hasLoadError)
+            {
+                _spriteBatch.Begin();
+                _spriteBatch.DrawString(font ?? Content.Load<SpriteFont>("Font"), debugMessage ?? "Unknown load error", new Vector2(20, 20), Color.Red);
+                _spriteBatch.End();
+                return;
+            }
             if (screen == Screen.intro)
             {
                 _spriteBatch.Begin();
@@ -677,19 +506,61 @@ namespace spritesheet
 
                 _spriteBatch.Begin();
 
-                int currentColumns = framesPerDirection[state][directionRow];
-                int currentRows = rowsPerState[state];
+                // player drawing handled by PlayerManager (reads playerAnimation state)
 
-                int slimeColumns = slimeFramesPerDirection[slimeState][slimeDirectionRow];
-                int slimeRows = slimeRowsPerState[slimeState];
+                int slimeColumns = slimeFramesPerDirection[slimeAnimationClass.CurrentState][slimeAnimationClass.CurrentDirectionRow];
+                int slimeRows = slimeRowsPerState[slimeAnimationClass.CurrentState];
 
                 _spriteBatch.Draw(backgroundTexture, window, Color.White);
 
-                spritesheetManager.Draw(_spriteBatch, state, frame, playerDrawRect, directionRow, currentColumns, currentRows);
-
-                if (!slimeDeathDraw)
+                // compute player columns/rows for debug
+                int playerColumns = 1;
+                if (framesPerDirection != null && framesPerDirection.TryGetValue(playerAnimation.CurrentState, out var pdict) && pdict != null)
                 {
-                    slimeManager.Draw(_spriteBatch, slimeState, slimeFrame, slimeDrawRect, slimeDirectionRow, slimeColumns, slimeRows);
+                    pdict.TryGetValue(playerAnimation.CurrentDirectionRow, out playerColumns);
+                }
+                int playerRows = 1;
+                if (rowsPerState != null) rowsPerState.TryGetValue(playerAnimation.CurrentState, out playerRows);
+
+                playerManager.Draw(_spriteBatch, playerAnimation);
+
+                // debug: show computed columns/rows and per-layer sizes
+                if (font != null)
+                {
+                    _spriteBatch.DrawString(font, $"cols:{playerColumns} rows:{playerRows}", new Vector2(20, 40), Color.White);
+                    try
+                    {
+                        var sizes = spritesheetDraw.GetLayerSizes(playerAnimation.CurrentState);
+                        for (int i = 0; i < sizes.Count; i++)
+                        {
+                            _spriteBatch.DrawString(font, $"L{i}:{sizes[i].X}x{sizes[i].Y}", new Vector2(20, 80 + i * 16), Color.LightYellow);
+                        }
+                        var srcs = spritesheetDraw.ComputeLayerSourceRects(playerAnimation.CurrentState, playerAnimation.CurrentFrame, playerAnimation.CurrentDirectionRow, playerColumns, playerRows);
+                        for (int i = 0; i < srcs.Count; i++)
+                        {
+                            var r = srcs[i];
+                            string txt = r == Rectangle.Empty ? "SR:SKIP" : $"SR{i}:{r.X},{r.Y} {r.Width}x{r.Height}";
+                            _spriteBatch.DrawString(font, txt, new Vector2(200, 80 + i * 16), Color.LightGreen);
+                        }
+                    }
+                    catch { }
+                }
+
+                // Debug: draw player rects to help locate missing player
+                if (rectangleTexture != null)
+                {
+                    _spriteBatch.Draw(rectangleTexture, playerAnimation.CurrentDrawRect, Color.Green * 0.4f);
+                    _spriteBatch.Draw(rectangleTexture, playerAnimation.CurrentCollisionRect, Color.Blue * 0.6f);
+                    _spriteBatch.Draw(rectangleTexture, playerAnimation.CurrentAttackRect, Color.Yellow * 0.6f);
+                }
+                if (font != null)
+                {
+                    _spriteBatch.DrawString(font, $"Player: {playerAnimation.CurrentState} F:{playerAnimation.CurrentFrame}", new Vector2(20, 60), Color.White);
+                }
+
+                if (!slimeAnimationClass.DeathDraw)
+                {
+                    slimeManager.Draw(_spriteBatch, slimeAnimationClass.CurrentState, slimeAnimationClass.CurrentFrame, slimeAnimationClass.CurrentDrawRect, slimeAnimationClass.CurrentDirectionRow, slimeColumns, slimeRows);
                 }
 
                 //_spriteBatch.Draw(rectangleTexture, playerCollisionRect, Color.Black * 0.4f);
@@ -712,7 +583,7 @@ namespace spritesheet
             }
             if (screen == Screen.end)
             {
-                if (slimeDied)
+                if (slimeAnimationClass.IsDead)
                 {
                     endScreenMessage = "Nice";
                 }

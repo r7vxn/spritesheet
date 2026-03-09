@@ -35,6 +35,11 @@ namespace spritesheet
         private Rectangle slimeCollisionRect;
         private Rectangle slimeAttackRect;
         private Rectangle slimeDrawRect;
+        
+        // Expose health
+        public int CurrentHealth => slimeHealth;
+        // Expose damage
+        public int CurrentDamage => slimeDamage;
 
         // Expose important state to the outside world as read-only properties
         public SlimeAnimation CurrentState => slimeState;
@@ -49,6 +54,17 @@ namespace spritesheet
         public SlimeAnimationClass()
         {
 
+        }
+
+        public void ApplyDamage(int amount)
+        {
+            if (slimeDied) return;
+            slimeHealth -= amount;
+            // show hurt animation and reset frame
+            slimeState = SlimeAnimation.SlimeHurt;
+            slimeFrame = 0;
+            slimeFrameCheck = false;
+            slimeAttackCollision = false;
         }
         public void Initialize()
         {
@@ -65,8 +81,12 @@ namespace spritesheet
             slimeCollisionRect = new Rectangle(slimeDrawRect.X + 50, slimeDrawRect.Y + 50, 50, 50);
             slimeAttackRect = new Rectangle((int)slimeLocation.X, (int)slimeLocation.Y + 23, 45, 20);
 
+            // default damage
+            slimeDamage = 3;
+
         }
-        public void update(GameTime gameTime, Rectangle playerCollisionRect, Vector2 playerLocation, Dictionary<SlimeAnimation, Dictionary<int, int>> slimeFramesPerDirection)
+        // Now accepts map air barriers so slime cannot move through them
+        public void update(GameTime gameTime, Rectangle playerCollisionRect, Vector2 playerLocation, Dictionary<SlimeAnimation, Dictionary<int, int>> slimeFramesPerDirection, List<Rectangle> airBarriers)
         {
             // slime's dying process
             if (slimeHealth <= 0 && !slimeDeathStarted)
@@ -99,20 +119,40 @@ namespace spritesheet
             slimeCollisionRect.Location = new Point(slimeDrawRect.X + 50, slimeDrawRect.Y + 50);
             slimeAttackRect.Location = new Point((int)slimeLocation.X, (int)slimeLocation.Y + 23);
 
-            //slime movement
+            //slime movement - compute direction and try to move, respecting air barriers
             if (!slimeDeathStarted && !slimeAttackState)
             {
-                if (!slimeAttackState && !slimeDeathStarted)
-                    slimeLocation += slimeDirection * slimeSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds;
-
                 slimeDirection = playerLocation - slimeLocation;
 
                 if (slimeDirection != Vector2.Zero)
                 {
                     slimeDirection.Normalize();
-                    slimeLocation += slimeDirection * slimeSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    Vector2 proposed = slimeLocation + slimeDirection * slimeSpeed * dt;
 
-                    //slime direction
+                    // build proposed draw/collision rects to test barriers
+                    Rectangle proposedDraw = new Rectangle((int)proposed.X - 55, (int)proposed.Y - 50, slimeDrawRect.Width, slimeDrawRect.Height);
+                    Rectangle proposedCollision = new Rectangle(proposedDraw.X + 50, proposedDraw.Y + 50, slimeCollisionRect.Width, slimeCollisionRect.Height);
+
+                    bool blocked = false;
+                    if (airBarriers != null)
+                    {
+                        foreach (var b in airBarriers)
+                        {
+                            if (proposedCollision.Intersects(b))
+                            {
+                                blocked = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!blocked)
+                    {
+                        slimeLocation = proposed;
+                    }
+
+                    //slime direction for animation
                     if (Math.Abs(slimeDirection.X) > Math.Abs(slimeDirection.Y))
                         slimeDirectionRow = (slimeDirection.X > 0) ? slimeRightRow : slimeLeftRow;
                     else
@@ -150,6 +190,10 @@ namespace spritesheet
                     }
                 }
             }
+
+            // reset attack collision when not attacking
+            if (!slimeAttackState)
+                slimeAttackCollision = false;
 
             //slime attack logic
             if (!slimeDied)
