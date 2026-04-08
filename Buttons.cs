@@ -29,20 +29,21 @@ namespace spritesheet
         
         public Buttons(Texture2D atlas, int rows, int columns)
         {
+            _atlas = atlas ?? throw new ArgumentNullException(nameof(atlas));
             _columns = Math.Max(1, columns);
             int r = Math.Max(1, rows);
-            _frameWidth = atlas.Width / _columns;
-            _frameHeight = atlas.Height / r;
+            _frameWidth = _atlas.Width / _columns;
+            _frameHeight = _atlas.Height / r;
         }
 
        
         public Buttons(ContentManager content, string assetName = "customButtons", int rows = 10, int columns = 4)
         {
-            var atlas = content.Load<Texture2D>(assetName);
+            _atlas = content.Load<Texture2D>(assetName) ?? throw new ArgumentNullException(nameof(assetName));
             _columns = Math.Max(1, columns);
             int r = Math.Max(1, rows);
-            _frameWidth = atlas.Width / _columns;
-            _frameHeight = atlas.Height / r;
+            _frameWidth = _atlas.Width / _columns;
+            _frameHeight = _atlas.Height / r;
         }
 
         public Button Create(Rectangle bounds, int frameDefault, int frameHovered, int framePressed, Action onClick = null, string text = null)

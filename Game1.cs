@@ -452,15 +452,22 @@ namespace spritesheet
 
             // Create UI buttons manager using the already-loaded texture `customButtons`.
             // The texture has 10 rows and 4 columns as you specified.
-            uiButtons = new Buttons(customButtons, rows: 10, columns: 4);
+           
 
             // Compute frame size so we can size buttons to one frame
-            int frameWidth = customButtons.Width / 4; // 4 columns
-            int frameHeight = customButtons.Height / 10; // 10 rows
-
-            // Create a centered "Play" button for the intro screen.
-            var playBtnBounds = new Rectangle(introRect.Center.X - frameWidth / 2, introRect.Center.Y - frameHeight / 2, frameWidth, frameHeight);
-            uiButtons.Create(playBtnBounds, frameDefault: 0, frameHovered: 1, framePressed: 2, onClick: () => { screen = Screen.game; }, text: "Play");
+            float scale = 2f; // 2.0 = twice as big
+            int frameWidth  = customButtons.Width  / 4; // columns
+            int frameHeight = customButtons.Height / 8; // rows
+            uiButtons = new Buttons(customButtons, frameWidth, frameHeight, columns: 4);
+            int scaledWidth = (int)(frameWidth * scale);
+            int scaledHeight = (int)(frameHeight * scale);
+            var playBtnBounds = new Rectangle(
+                introRect.Center.X - scaledWidth / 2,
+                introRect.Center.Y - scaledHeight / 2,
+                scaledWidth,
+                scaledHeight);
+            uiButtons.Create(playBtnBounds, frameDefault: 0, frameHovered: 1, framePressed: 2,
+                onClick: () => { screen = Screen.game; }, text: "Play");
 
         }
 
@@ -800,8 +807,6 @@ namespace spritesheet
                 _spriteBatch.Begin();
 
                 _spriteBatch.Draw(introTexture, window, Color.White);
-                _spriteBatch.Draw(rectangleTexture, introRect, Color.White * 0.8f);
-                // Draw UI buttons (intro Play button)
                 uiButtons?.Draw(_spriteBatch, font);
                 
                 _spriteBatch.End();
