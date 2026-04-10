@@ -16,14 +16,18 @@ namespace spritesheet
         private readonly int _frameHeight;
         private readonly int _columns;
 
+        // Optional per-frame source rectangles (overrides uniform grid calculation).
+        private readonly Dictionary<int, Rectangle>? _customSourceRects;
+
         private readonly List<Button> _buttons = new();
 
-        public Buttons(Texture2D atlas, int frameWidth, int frameHeight, int columns)
+        public Buttons(Texture2D atlas, int frameWidth, int frameHeight, int columns, Dictionary<int, Rectangle>? customSourceRects = null)
         {
             _atlas = atlas ?? throw new ArgumentNullException(nameof(atlas));
             _frameWidth = frameWidth;
             _frameHeight = frameHeight;
             _columns = columns;
+            _customSourceRects = customSourceRects;
         }
 
         
@@ -64,7 +68,7 @@ namespace spritesheet
         public void Draw(SpriteBatch spriteBatch, SpriteFont font = null)
         {
             foreach (var b in _buttons)
-                b.Draw(spriteBatch, _atlas, _frameWidth, _frameHeight, _columns, font);
+                b.Draw(spriteBatch, _atlas, _frameWidth, _frameHeight, _columns, font, _customSourceRects);
         }
     }
 
@@ -162,7 +166,7 @@ namespace spritesheet
         }
 
         // Draw the button using the atlas. Provide frame size and atlas columns to compute source rect.
-        public void Draw(SpriteBatch spriteBatch, Texture2D atlas, int frameWidth, int frameHeight, int columns, SpriteFont font = null)
+        public void Draw(SpriteBatch spriteBatch, Texture2D atlas, int frameWidth, int frameHeight, int columns, SpriteFont font = null, Dictionary<int, Rectangle>? customSourceRects = null)
         {
             if (atlas == null) throw new ArgumentNullException(nameof(atlas));
 
@@ -194,7 +198,15 @@ namespace spritesheet
                     break;
             }
 
-            var src = GetSourceRect(frameIndex, frameWidth, frameHeight, columns);
+            Rectangle src;
+            if (customSourceRects != null && customSourceRects.TryGetValue(frameIndex, out var r))
+            {
+                src = r;
+            }
+            else
+            {
+                src = GetSourceRect(frameIndex, frameWidth, frameHeight, columns);
+            }
             spriteBatch.Draw(atlas, Bounds, src, Color.White);
 
             if (font != null && !string.IsNullOrEmpty(Text))

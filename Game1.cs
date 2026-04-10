@@ -454,11 +454,52 @@ namespace spritesheet
             // The texture has 10 rows and 4 columns as you specified.
            
 
-            // Compute frame size so we can size buttons to one frame
-            float scale = 2f; // 2.0 = twice as big
+            // Compute nominal frame size (used as default if needed)
+            float scale = 0.6f; 
             int frameWidth  = customButtons.Width  / 4; // columns
-            int frameHeight = customButtons.Height / 8; // rows
-            uiButtons = new Buttons(customButtons, frameWidth, frameHeight, columns: 4);
+            int frameHeight = customButtons.Height / 8; // nominal rows (not used when custom rects provided)
+
+            // Custom per-frame source rects provided by the designer (overrides uniform grid).
+            // Mapping: btn_{row}_{col} -> frameIndex = row * columns + col
+            var customSourceRects = new Dictionary<int, Rectangle>()
+            {
+                { 0*4 + 0, new Rectangle(148,  57, 295, 89) },
+                { 0*4 + 1, new Rectangle(488, 57, 259, 89) },
+                { 0*4 + 2, new Rectangle(790, 57, 258, 89) },
+                { 0*4 + 3, new Rectangle(1095, 57, 293, 89) },
+
+                { 1*4 + 0, new Rectangle(148,  175, 295, 85) },
+                { 1*4 + 1, new Rectangle(488, 175, 259, 85) },
+                { 1*4 + 2, new Rectangle(790, 175, 258, 85) },
+                { 1*4 + 3, new Rectangle(1095, 175, 293, 85) },
+
+                { 2*4 + 0, new Rectangle(168,  288, 255, 85) },
+                { 2*4 + 1, new Rectangle(508, 288, 222, 85) },
+                { 2*4 + 2, new Rectangle(809, 288, 219, 85) },
+                { 2*4 + 3, new Rectangle(1113, 288, 257, 85) },
+
+                { 3*4 + 0, new Rectangle(188,  402, 214, 82) },
+                { 3*4 + 1, new Rectangle(528, 402, 180, 82) },
+                { 3*4 + 2, new Rectangle(830, 402, 177, 82) },
+                { 3*4 + 3, new Rectangle(1133, 402, 214, 82) },
+
+                { 4*4 + 0, new Rectangle(208, 513, 174, 80) },
+                { 4*4 + 1, new Rectangle(546, 513, 146, 80) },
+                { 4*4 + 2, new Rectangle(845, 513, 145, 80) },
+                { 4*4 + 3, new Rectangle(1152, 513, 175, 80) },
+
+                { 5*4 + 0, new Rectangle(227,  620, 138,  82) },
+                { 5*4 + 1, new Rectangle(564, 620, 113,  82) },
+                { 5*4 + 2, new Rectangle(862, 620, 112,  82) },
+                { 5*4 + 3, new Rectangle(1170, 620, 140,  82) },
+
+                { 6*4 + 0, new Rectangle(70,  620, 60,  30) },
+                { 6*4 + 1, new Rectangle(270, 620, 60,  30) },
+                { 6*4 + 2, new Rectangle(470, 620, 60,  30) },
+                { 6*4 + 3, new Rectangle(670, 620, 60,  30) }
+            };
+
+            uiButtons = new Buttons(customButtons, frameWidth, frameHeight, columns: 4, customSourceRects);
             int scaledWidth = (int)(frameWidth * scale);
             int scaledHeight = (int)(frameHeight * scale);
             var playBtnBounds = new Rectangle(
