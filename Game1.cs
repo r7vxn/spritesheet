@@ -488,15 +488,20 @@ namespace spritesheet
                 { 4*4 + 2, new Rectangle(845, 513, 145, 80) },
                 { 4*4 + 3, new Rectangle(1152, 513, 175, 80) },
 
-                { 5*4 + 0, new Rectangle(227,  620, 138,  82) },
-                { 5*4 + 1, new Rectangle(564, 620, 113,  82) },
-                { 5*4 + 2, new Rectangle(862, 620, 112,  82) },
-                { 5*4 + 3, new Rectangle(1170, 620, 140,  82) },
+                { 5*4 + 0, new Rectangle(228,  622, 138, 80) },
+                { 5*4 + 1, new Rectangle(546, 513, 146,  80) },
+                { 5*4 + 2, new Rectangle(844, 513, 146, 80) },
+                { 5*4 + 3, new Rectangle(1171, 621, 138,  80) },
 
-                { 6*4 + 0, new Rectangle(70,  620, 60,  30) },
-                { 6*4 + 1, new Rectangle(270, 620, 60,  30) },
-                { 6*4 + 2, new Rectangle(470, 620, 60,  30) },
-                { 6*4 + 3, new Rectangle(670, 620, 60,  30) }
+                { 6*4 + 0, new Rectangle(247,  730, 98,  80) },
+                { 6*4 + 1, new Rectangle(583, 730, 77,  80) },
+                { 6*4 + 2, new Rectangle(878, 730, 79,  80) },
+                { 6*4 + 3, new Rectangle(1191, 730, 99,  80) },
+
+                { 7*4 + 0, new Rectangle(262, 836, 70, 72) },
+                { 7*4 + 1, new Rectangle(588, 836, 65, 72) },
+                { 7*4 + 2, new Rectangle(886, 836, 67, 72) },
+                { 7*4 + 3, new Rectangle(1207, 836, 69, 72) }
             };
 
             uiButtons = new Buttons(customButtons, frameWidth, frameHeight, columns: 4, customSourceRects);
