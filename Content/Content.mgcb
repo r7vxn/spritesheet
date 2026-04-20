@@ -455,6 +455,9 @@
 /processorParam:TextureFormat=Color
 /build:Slime1_Run_shadow.png
 
+#begin StitchWarrior demo.ttf
+/copy:StitchWarrior demo.ttf
+
 #begin Swordsman_lvl1_Death_body.png
 /importer:TextureImporter
 /processor:TextureProcessor

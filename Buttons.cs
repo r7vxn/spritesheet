@@ -168,6 +168,9 @@ namespace spritesheet
         // Draw the button using the atlas. Provide frame size and atlas columns to compute source rect.
         public void Draw(SpriteBatch spriteBatch, Texture2D atlas, int frameWidth, int frameHeight, int columns, SpriteFont font = null, Dictionary<int, Rectangle>? customSourceRects = null)
         {
+            // do not draw if button is disabled
+            if (!Enabled) return;
+
             if (atlas == null) throw new ArgumentNullException(nameof(atlas));
 
             int frameIndex = FrameDefault;

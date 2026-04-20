@@ -450,16 +450,11 @@ namespace spritesheet
                 slimes.Add(s);
             }
 
-            // Create UI buttons manager using the already-loaded texture `customButtons`.
-            // The texture has 10 rows and 4 columns as you specified.
-           
 
-            // Compute nominal frame size (used as default if needed)
-            float scale = 0.6f; 
-            int frameWidth  = customButtons.Width  / 4; // columns
-            int frameHeight = customButtons.Height / 8; // nominal rows (not used when custom rects provided)
+            float scale = 1f; 
+            int frameWidth  = customButtons.Width  / 4; 
+            int frameHeight = customButtons.Height / 8; 
 
-            // Custom per-frame source rects provided by the designer (overrides uniform grid).
             // Mapping: btn_{row}_{col} -> frameIndex = row * columns + col
             var customSourceRects = new Dictionary<int, Rectangle>()
             {
@@ -512,8 +507,10 @@ namespace spritesheet
                 introRect.Center.Y - scaledHeight / 2,
                 scaledWidth,
                 scaledHeight);
-            uiButtons.Create(playBtnBounds, frameDefault: 0, frameHovered: 1, framePressed: 2,
-                onClick: () => { screen = Screen.game; }, text: "Play");
+            // store reference so we can disable/hide it after use
+            Button playBtn = null;
+            playBtn = uiButtons.Create(playBtnBounds, frameDefault: 0, frameHovered: 1, framePressed: 2,
+                onClick: () => { screen = Screen.game; if (playBtn != null) playBtn.Enabled = false; }, text: "Play");
 
         }
 
