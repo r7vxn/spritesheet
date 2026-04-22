@@ -54,6 +54,8 @@ namespace spritesheet
         Texture2D rectangleTexture;
         Texture2D backgroundTexture;
         Texture2D introTexture;
+        Rectangle introTitleRect = new Rectangle(570, 20, 800, 500);
+        Texture2D introTitleTexture;
         Rectangle introRect = new Rectangle(560, 440, 800, 200);
         SpriteFont font;
         Vector2 introVector;
@@ -415,6 +417,8 @@ namespace spritesheet
                 Content.Load<Texture2D>("Slime1_Hurt_shadow"),
                 Content.Load<Texture2D>("Slime1_Hurt")
             };
+
+            introTitleTexture = Content.Load<Texture2D>("Slime Fall logo");
             customButtons = Content.Load<Texture2D>("Custom Buttons");
             rectangleTexture = Content.Load<Texture2D>("rectangle");
             backgroundTexture = Content.Load<Texture2D>("forest background");
@@ -851,7 +855,8 @@ namespace spritesheet
 
                 _spriteBatch.Draw(introTexture, window, Color.White);
                 uiButtons?.Draw(_spriteBatch, font);
-                
+                _spriteBatch.Draw(introTitleTexture, introTitleRect, Color.White);
+
                 _spriteBatch.End();
             }
             if (screen == Screen.game)

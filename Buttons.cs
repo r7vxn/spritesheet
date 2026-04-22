@@ -215,7 +215,7 @@ namespace spritesheet
             if (font != null && !string.IsNullOrEmpty(Text))
             {
                 var textSize = font.MeasureString(Text);
-                var textPos = new Vector2(Bounds.Center.X, Bounds.Center.Y) - textSize / 2f;
+                var textPos = new Vector2(Bounds.Center.X, Bounds.Center.Y) - textSize / 2f + new Vector2(0, -6f);
                 spriteBatch.DrawString(font, Text, textPos, Color.Black);
             }
         }

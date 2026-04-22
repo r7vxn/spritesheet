@@ -293,6 +293,18 @@
 /processorParam:TextureFormat=Color
 /build:Shop.png
 
+#begin Slime Fall logo.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:Slime Fall logo.png
+
 #begin slime hit ground.wav
 /importer:WavImporter
 /processor:SoundEffectProcessor
