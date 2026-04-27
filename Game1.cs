@@ -148,6 +148,11 @@ namespace spritesheet
         List<IntroSlime> introSlimes = new List<IntroSlime>();
         // whether the options menu overlay is open on the intro screen
         bool optionMenuOpen = false;
+        // index of currently-selected option in the overlay (0=music,1=sfx,2=fullscreen)
+        int optionSelectedIndex = 0;
+        // settings file path and in-memory settings
+        string settingsFilePath;
+        Settings settings;
 
         Screen screen;
 
@@ -174,6 +179,7 @@ namespace spritesheet
             // initialize previous keyboard state for single-key detection
             previousKeyboardState = Keyboard.GetState();
             barriersFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "barriers.json");
+            settingsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
 
             MediaPlayer.Play(song);
             MediaPlayer.Volume = 0.18f;
@@ -529,6 +535,10 @@ namespace spritesheet
             introSlimes.Add(new IntroSlime(new Vector2(760, 360)));
             introSlimes.Add(new IntroSlime(new Vector2(1160, 360)));
 
+            // load settings (or defaults)
+            LoadSettings();
+            ApplySettings();
+
         }
 
         protected override void Update(GameTime gameTime)
@@ -558,9 +568,66 @@ namespace spritesheet
                 foreach (var s in introSlimes)
                     s.Update(gameTime);
 
-                // close options menu with Escape
-                if (Keyboard.GetState().IsKeyDown(Keys.Escape))
+                // close options menu with Escape (single press)
+                var ks = Keyboard.GetState();
+                if (ks.IsKeyDown(Keys.Escape) && !previousKeyboardState.IsKeyDown(Keys.Escape))
                     optionMenuOpen = false;
+
+                // when options open, allow changing values with arrow keys (single-step per press)
+                if (optionMenuOpen)
+                {
+                    int prevIndex = optionSelectedIndex;
+                    bool changed = false;
+
+                    if (ks.IsKeyDown(Keys.Up) && !previousKeyboardState.IsKeyDown(Keys.Up)) { optionSelectedIndex = Math.Max(0, optionSelectedIndex - 1); changed = true; }
+                    if (ks.IsKeyDown(Keys.Down) && !previousKeyboardState.IsKeyDown(Keys.Down)) { optionSelectedIndex = Math.Min(2, optionSelectedIndex + 1); changed = true; }
+
+                    // smaller volume step for finer control
+                    float volStep = 0.01f;
+
+                    if (ks.IsKeyDown(Keys.Left) && !previousKeyboardState.IsKeyDown(Keys.Left))
+                    {
+                        if (optionSelectedIndex == 0)
+                        {
+                            settings.MusicVolume = Math.Clamp(settings.MusicVolume - volStep, 0f, 1f);
+                            MediaPlayer.Volume = settings.MusicVolume;
+                            changed = true;
+                        }
+                        else if (optionSelectedIndex == 1)
+                        {
+                            settings.SfxVolume = Math.Clamp(settings.SfxVolume - volStep, 0f, 1f);
+                            ApplySfxVolume();
+                            changed = true;
+                        }
+                    }
+                    if (ks.IsKeyDown(Keys.Right) && !previousKeyboardState.IsKeyDown(Keys.Right))
+                    {
+                        if (optionSelectedIndex == 0)
+                        {
+                            settings.MusicVolume = Math.Clamp(settings.MusicVolume + volStep, 0f, 1f);
+                            MediaPlayer.Volume = settings.MusicVolume;
+                            changed = true;
+                        }
+                        else if (optionSelectedIndex == 1)
+                        {
+                            settings.SfxVolume = Math.Clamp(settings.SfxVolume + volStep, 0f, 1f);
+                            ApplySfxVolume();
+                            changed = true;
+                        }
+                    }
+
+                    // toggle fullscreen with Enter when selected (single press)
+                    if (ks.IsKeyDown(Keys.Enter) && !previousKeyboardState.IsKeyDown(Keys.Enter) && optionSelectedIndex == 2)
+                    {
+                        _graphics.IsFullScreen = !_graphics.IsFullScreen;
+                        _graphics.ApplyChanges();
+                        settings.Fullscreen = _graphics.IsFullScreen;
+                        changed = true;
+                    }
+
+                    if (changed)
+                        SaveSettings();
+                }
             }
             if (screen == Screen.game)
             {
@@ -898,13 +965,25 @@ namespace spritesheet
 
                     // Draw option entries
                     float y = overlay.Y + 130;
-                    _spriteBatch.DrawString(font, $"Music Volume: {Math.Round(MediaPlayer.Volume * 100)}%", new Vector2(overlay.X + 60, y), Color.White);
+                    Color normal = Color.White;
+                    Color highlight = Color.Yellow;
+
+                    var musicCol = optionSelectedIndex == 0 ? highlight : normal;
+                    var sfxCol = optionSelectedIndex == 1 ? highlight : normal;
+                    var fullCol = optionSelectedIndex == 2 ? highlight : normal;
+
+                    _spriteBatch.DrawString(font, $"Music Volume: {Math.Round(settings.MusicVolume * 100)}%", new Vector2(overlay.X + 60, y), musicCol);
                     y += 48;
-                    _spriteBatch.DrawString(font, $"SFX Volume: {Math.Round(slimeJumpInstance?.Volume * 100 ?? 60)}%", new Vector2(overlay.X + 60, y), Color.White);
+                    _spriteBatch.DrawString(font, $"SFX Volume: {Math.Round(settings.SfxVolume * 100)}%", new Vector2(overlay.X + 60, y), sfxCol);
                     y += 48;
-                    _spriteBatch.DrawString(font, $"Fullscreen: {_graphics.IsFullScreen}", new Vector2(overlay.X + 60, y), Color.White);
+                    _spriteBatch.DrawString(font, $"Fullscreen: {settings.Fullscreen}", new Vector2(overlay.X + 60, y), fullCol);
                     y += 48;
-                    _spriteBatch.DrawString(font, "(Click Options button again to toggle; Escape to close)", new Vector2(overlay.X + 60, y), Color.LightGray);
+                    // multi-line help text so it doesn't overflow the overlay
+                    _spriteBatch.DrawString(font, "Use Up/Down to select", new Vector2(overlay.X + 60, y), Color.LightGray);
+                    y += 28;
+                    _spriteBatch.DrawString(font, "Left/Right to change values", new Vector2(overlay.X + 60, y), Color.LightGray);
+                    y += 28;
+                    _spriteBatch.DrawString(font, "Enter to toggle fullscreen when selected", new Vector2(overlay.X + 60, y), Color.LightGray);
                 }
 
                 _spriteBatch.End();
@@ -1043,6 +1122,68 @@ namespace spritesheet
             public int Y { get; set; }
             public int Width { get; set; }
             public int Height { get; set; }
+        }
+
+        private class Settings
+        {
+            public float MusicVolume { get; set; } = 0.18f;
+            public float SfxVolume { get; set; } = 0.6f;
+            public bool Fullscreen { get; set; } = false;
+        }
+
+        private void LoadSettings()
+        {
+            try
+            {
+                if (!File.Exists(settingsFilePath))
+                {
+                    settings = new Settings();
+                    SaveSettings();
+                    return;
+                }
+                var json = File.ReadAllText(settingsFilePath);
+                settings = JsonSerializer.Deserialize<Settings>(json) ?? new Settings();
+            }
+            catch
+            {
+                settings = new Settings();
+            }
+        }
+
+        private void SaveSettings()
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(settings);
+                File.WriteAllText(settingsFilePath, json);
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        private void ApplySettings()
+        {
+            try
+            {
+                MediaPlayer.Volume = settings.MusicVolume;
+                ApplySfxVolume();
+                _graphics.IsFullScreen = settings.Fullscreen;
+                _graphics.ApplyChanges();
+            }
+            catch { }
+        }
+
+        private void ApplySfxVolume()
+        {
+            try
+            {
+                if (slimeJumpInstance != null) slimeJumpInstance.Volume = settings.SfxVolume;
+                if (slimeBeingSlashInstance != null) slimeBeingSlashInstance.Volume = settings.SfxVolume;
+                if (slimeHittingGroundInstance != null) slimeHittingGroundInstance.Volume = settings.SfxVolume;
+            }
+            catch { }
         }
 
     }
