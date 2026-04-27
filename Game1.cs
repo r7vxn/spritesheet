@@ -144,6 +144,10 @@ namespace spritesheet
         SlimeSoundEffect slimeSoundEffect;
         SlimeAnimationClass slimeAnimationClass;
         List<SlimeAnimationClass> slimes = new List<SlimeAnimationClass>();
+        // Intro screen slimes (separate lightweight behavior)
+        List<IntroSlime> introSlimes = new List<IntroSlime>();
+        // whether the options menu overlay is open on the intro screen
+        bool optionMenuOpen = false;
 
         Screen screen;
 
@@ -516,6 +520,15 @@ namespace spritesheet
             playBtn = uiButtons.Create(playBtnBounds, frameDefault: 0, frameHovered: 1, framePressed: 2,
                 onClick: () => { screen = Screen.game; if (playBtn != null) playBtn.Enabled = false; }, text: "Play");
 
+            // Option button placed under the Play button
+            var optionBtnBounds = new Rectangle(playBtnBounds.X, playBtnBounds.Y + scaledHeight + 20, scaledWidth, scaledHeight);
+            uiButtons.Create(optionBtnBounds, frameDefault: 4, frameHovered: 5, framePressed: 6,
+                onClick: () => { optionMenuOpen = !optionMenuOpen; }, text: "Options");
+
+            // Create two simple intro slimes that bounce left/right and jump randomly
+            introSlimes.Add(new IntroSlime(new Vector2(760, 360)));
+            introSlimes.Add(new IntroSlime(new Vector2(1160, 360)));
+
         }
 
         protected override void Update(GameTime gameTime)
@@ -541,7 +554,13 @@ namespace spritesheet
 
             if (screen == Screen.intro)
             {
-                // intro button click handled by uiButtons Play button's OnClick
+                // update intro slimes and handle option menu toggle
+                foreach (var s in introSlimes)
+                    s.Update(gameTime);
+
+                // close options menu with Escape
+                if (Keyboard.GetState().IsKeyDown(Keys.Escape))
+                    optionMenuOpen = false;
             }
             if (screen == Screen.game)
             {
@@ -605,6 +624,7 @@ namespace spritesheet
                         if (customBarriers.Count > 0) customBarriers.RemoveAt(customBarriers.Count - 1);
                     }
                 }
+
                 // Update all slimes
                 foreach (var s in slimes)
                     s.update(gameTime, playerCollisionRect, playerLocation, slimeFramesPerDirection);
@@ -857,6 +877,36 @@ namespace spritesheet
                 uiButtons?.Draw(_spriteBatch, font);
                 _spriteBatch.Draw(introTitleTexture, introTitleRect, Color.White);
 
+                // draw intro slimes
+                foreach (var s in introSlimes)
+                {
+                    var r = s.GetDrawRect();
+                    var state = s.GetState();
+                    var dir = s.GetDirectionRow();
+                    int slimeColumns = slimeFramesPerDirection[state][dir];
+                    int slimeRows = slimeRowsPerState[state];
+                    slimeManager.Draw(_spriteBatch, state, s.GetFrame(), r, dir, slimeColumns, slimeRows);
+                }
+
+                // draw options overlay if open (larger)
+                if (optionMenuOpen)
+                {
+                    var overlay = new Rectangle(480, 160, 960, 760);
+                    _spriteBatch.Draw(rectangleTexture, overlay, Color.Black * 0.75f);
+                    _spriteBatch.DrawString(font, "Options", new Vector2(overlay.X + 32, overlay.Y + 28), Color.White);
+                    _spriteBatch.DrawString(font, "(Press Escape to close)", new Vector2(overlay.X + 32, overlay.Y + 72), Color.LightGray);
+
+                    // Draw option entries
+                    float y = overlay.Y + 130;
+                    _spriteBatch.DrawString(font, $"Music Volume: {Math.Round(MediaPlayer.Volume * 100)}%", new Vector2(overlay.X + 60, y), Color.White);
+                    y += 48;
+                    _spriteBatch.DrawString(font, $"SFX Volume: {Math.Round(slimeJumpInstance?.Volume * 100 ?? 60)}%", new Vector2(overlay.X + 60, y), Color.White);
+                    y += 48;
+                    _spriteBatch.DrawString(font, $"Fullscreen: {_graphics.IsFullScreen}", new Vector2(overlay.X + 60, y), Color.White);
+                    y += 48;
+                    _spriteBatch.DrawString(font, "(Click Options button again to toggle; Escape to close)", new Vector2(overlay.X + 60, y), Color.LightGray);
+                }
+
                 _spriteBatch.End();
             }
             if (screen == Screen.game)
@@ -996,4 +1046,7 @@ namespace spritesheet
         }
 
     }
+
+
+
 }
