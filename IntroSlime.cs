@@ -48,10 +48,10 @@ namespace spritesheet
 
             // gravity
             velocity.Y += 600f * dt;
-            // ground at Y = 420 (approx)
-            if (location.Y >= 420)
+            // ground at Y = 720 (approx)
+            if (location.Y >= 720)
             {
-                location.Y = 420;
+                location.Y = 720;
                 velocity.Y = 0;
             }
 

@@ -960,11 +960,15 @@ namespace spritesheet
                 {
                     var overlay = new Rectangle(480, 160, 960, 760);
                     _spriteBatch.Draw(rectangleTexture, overlay, Color.Black * 0.75f);
-                    _spriteBatch.DrawString(font, "Options", new Vector2(overlay.X + 32, overlay.Y + 28), Color.White);
-                    _spriteBatch.DrawString(font, "(Press Escape to close)", new Vector2(overlay.X + 32, overlay.Y + 72), Color.LightGray);
+                    int titleOffset = 56; // vertical offset for the title from the top of the overlay
+                    _spriteBatch.DrawString(font, "Options", new Vector2(overlay.X + 32, overlay.Y + titleOffset), Color.White);
+                    // keep the title in place; move other texts a bit lower so they don't crowd the title
+                    _spriteBatch.DrawString(font, "(Press Escape to close)", new Vector2(overlay.X + 32, overlay.Y + titleOffset + 48), Color.LightGray);
 
                     // Draw option entries
-                    float y = overlay.Y + 130;
+                    // increase vertical spacing between lines for readability and start lower than before
+                    float y = overlay.Y + titleOffset + 140;
+                    float lineSpacing = 64f; // change this to increase/decrease spacing
                     Color normal = Color.White;
                     Color highlight = Color.Yellow;
 
@@ -973,16 +977,16 @@ namespace spritesheet
                     var fullCol = optionSelectedIndex == 2 ? highlight : normal;
 
                     _spriteBatch.DrawString(font, $"Music Volume: {Math.Round(settings.MusicVolume * 100)}%", new Vector2(overlay.X + 60, y), musicCol);
-                    y += 48;
+                    y += lineSpacing;
                     _spriteBatch.DrawString(font, $"SFX Volume: {Math.Round(settings.SfxVolume * 100)}%", new Vector2(overlay.X + 60, y), sfxCol);
-                    y += 48;
+                    y += lineSpacing;
                     _spriteBatch.DrawString(font, $"Fullscreen: {settings.Fullscreen}", new Vector2(overlay.X + 60, y), fullCol);
-                    y += 48;
-                    // multi-line help text so it doesn't overflow the overlay
+                    y += lineSpacing;
+                    // multi-line help text (spaced for readability)
                     _spriteBatch.DrawString(font, "Use Up/Down to select", new Vector2(overlay.X + 60, y), Color.LightGray);
-                    y += 28;
+                    y += lineSpacing;
                     _spriteBatch.DrawString(font, "Left/Right to change values", new Vector2(overlay.X + 60, y), Color.LightGray);
-                    y += 28;
+                    y += lineSpacing;
                     _spriteBatch.DrawString(font, "Enter to toggle fullscreen when selected", new Vector2(overlay.X + 60, y), Color.LightGray);
                 }
 
