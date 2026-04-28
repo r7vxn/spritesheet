@@ -61,13 +61,19 @@ namespace spritesheet
 
         public void Update(GameTime gameTime, MouseState currentMouse, MouseState previousMouse)
         {
-            foreach (var b in _buttons)
+            // iterate over a snapshot so individual button OnClick handlers
+            // can safely add/remove buttons during Update without throwing
+            // CollectionModified exceptions.
+            var snapshot = _buttons.ToArray();
+            foreach (var b in snapshot)
                 b.Update(gameTime, currentMouse, previousMouse);
         }
 
         public void Draw(SpriteBatch spriteBatch, SpriteFont font = null)
         {
-            foreach (var b in _buttons)
+            // draw from a snapshot to avoid collection modification issues
+            var snapshot = _buttons.ToArray();
+            foreach (var b in snapshot)
                 b.Draw(spriteBatch, _atlas, _frameWidth, _frameHeight, _columns, font, _customSourceRects);
         }
     }

@@ -521,14 +521,21 @@ namespace spritesheet
                 introRect.Center.Y - scaledHeight / 2,
                 scaledWidth,
                 scaledHeight);
-            // store reference so we can disable/hide it after use
+            // store references so we can disable/remove them after use
             Button playBtn = null;
+            Button optionBtn = null;
+
             playBtn = uiButtons.Create(playBtnBounds, frameDefault: 0, frameHovered: 1, framePressed: 2,
-                onClick: () => { screen = Screen.game; if (playBtn != null) playBtn.Enabled = false; }, text: "Play");
+                onClick: () => {
+                    screen = Screen.game;
+                    if (playBtn != null) playBtn.Enabled = false;
+                    // remove the options button entirely when starting the game
+                    if (optionBtn != null) uiButtons.Remove(optionBtn);
+                }, text: "Play");
 
             // Option button placed under the Play button
             var optionBtnBounds = new Rectangle(playBtnBounds.X, playBtnBounds.Y + scaledHeight + 20, scaledWidth, scaledHeight);
-            uiButtons.Create(optionBtnBounds, frameDefault: 4, frameHovered: 5, framePressed: 6,
+            optionBtn = uiButtons.Create(optionBtnBounds, frameDefault: 4, frameHovered: 5, framePressed: 6,
                 onClick: () => { optionMenuOpen = !optionMenuOpen; }, text: "Options");
 
             // Create two simple intro slimes that bounce left/right and jump randomly
@@ -958,24 +965,29 @@ namespace spritesheet
                 // draw options overlay if open (larger)
                 if (optionMenuOpen)
                 {
-                    var overlay = new Rectangle(480, 160, 960, 760);
+                    // make the options overlay slightly wider and keep it centered
+                    int overlayWidth = 1120; // increased from 960
+                    int overlayHeight = 760;
+                    int overlayX = (window.Width - overlayWidth) / 2;
+                    int overlayY = 160;
+                    var overlay = new Rectangle(overlayX, overlayY, overlayWidth, overlayHeight);
                     _spriteBatch.Draw(rectangleTexture, overlay, Color.Black * 0.75f);
                     int titleOffset = 56; // vertical offset for the title from the top of the overlay
-                    _spriteBatch.DrawString(font, "Options", new Vector2(overlay.X + 32, overlay.Y + titleOffset), Color.White);
-                    // keep the title in place; move other texts a bit lower so they don't crowd the title
-                    _spriteBatch.DrawString(font, "(Press Escape to close)", new Vector2(overlay.X + 32, overlay.Y + titleOffset + 48), Color.LightGray);
-
-                    // Draw option entries
-                    // increase vertical spacing between lines for readability and start lower than before
-                    float y = overlay.Y + titleOffset + 140;
-                    float lineSpacing = 64f; // change this to increase/decrease spacing
+                    float lineSpacing = 64f; // change this to increase/decrease spacing between lines
                     Color normal = Color.White;
                     Color highlight = Color.Yellow;
+
+                    _spriteBatch.DrawString(font, "Options", new Vector2(overlay.X + 32, overlay.Y + titleOffset), Color.White);
+                    // show the small hint closer to the title, then leave one full lineSpacing gap before the options
+
+                    // Draw option entries starting one lineSpacing below the title (extra spacing under 'Options')
+                    float y = overlay.Y + titleOffset + lineSpacing;
 
                     var musicCol = optionSelectedIndex == 0 ? highlight : normal;
                     var sfxCol = optionSelectedIndex == 1 ? highlight : normal;
                     var fullCol = optionSelectedIndex == 2 ? highlight : normal;
 
+                    y += lineSpacing;
                     _spriteBatch.DrawString(font, $"Music Volume: {Math.Round(settings.MusicVolume * 100)}%", new Vector2(overlay.X + 60, y), musicCol);
                     y += lineSpacing;
                     _spriteBatch.DrawString(font, $"SFX Volume: {Math.Round(settings.SfxVolume * 100)}%", new Vector2(overlay.X + 60, y), sfxCol);
@@ -987,7 +999,7 @@ namespace spritesheet
                     y += lineSpacing;
                     _spriteBatch.DrawString(font, "Left/Right to change values", new Vector2(overlay.X + 60, y), Color.LightGray);
                     y += lineSpacing;
-                    _spriteBatch.DrawString(font, "Enter to toggle fullscreen when selected", new Vector2(overlay.X + 60, y), Color.LightGray);
+                    _spriteBatch.DrawString(font, "Enter to toggle fullscreen", new Vector2(overlay.X + 60, y), Color.LightGray);
                 }
 
                 _spriteBatch.End();
