@@ -52,6 +52,12 @@ namespace spritesheet
         Texture2D customButtons;
         Rectangle window = new Rectangle(0, 0, 1920, 1080);
         Texture2D rectangleTexture;
+        Texture2D characterPanelTexture;
+        // panel source rect and precomputed bar offsets (relative to source)
+        Rectangle hudPanelSourceRect = new Rectangle(1, 65, 86, 31);
+        int[] hudBarStartRelX = new int[3];
+        int[] hudBarStartRelY = new int[3] { 2, 6, 11 };
+        bool hudSourceOpaque = false;
         Texture2D backgroundTexture;
         Texture2D introTexture;
         Rectangle introTitleRect = new Rectangle(570, 20, 800, 500);
@@ -139,6 +145,13 @@ namespace spritesheet
 
         int resChange = 2;
 
+        // HUD placeholder values for stamina/mana
+        int maxPlayerHealth = 20;
+        int playerStamina = 100;
+        int maxPlayerStamina = 100;
+        int playerMana = 100;
+        int maxPlayerMana = 100;
+
         SlimeDraw slimeDraw;
         SlimeManager slimeManager;
         SlimeSoundEffect slimeSoundEffect;
@@ -181,6 +194,8 @@ namespace spritesheet
             barriersFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "barriers.json");
             settingsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
 
+            SetupCollision();
+
             MediaPlayer.Play(song);
             MediaPlayer.Volume = 0.18f;
 
@@ -192,8 +207,6 @@ namespace spritesheet
             slimeJumpInstance.Volume = 0.6f;
             slimeHittingGroundInstance = slimeHittingGround.CreateInstance();
             slimeHittingGroundInstance.Volume = 0.6f;
-
-            SetupCollision();
 
             // load saved custom barriers (appended to built-in map barriers)
             LoadBarriers();
@@ -431,6 +444,65 @@ namespace spritesheet
             introTitleTexture = Content.Load<Texture2D>("Slime Fall logo");
             customButtons = Content.Load<Texture2D>("Custom Buttons");
             rectangleTexture = Content.Load<Texture2D>("rectangle");
+            // attempt to load the character panel; if missing, create a visible placeholder so Draw() won't NRE
+            try
+            {
+                characterPanelTexture = Content.Load<Texture2D>("character_panel");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Warning: failed to load character_panel: {ex.Message}");
+                int placeholderWidth = 87; // must be >= source.x + source.width (1 + 86)
+                int placeholderHeight = 96; // must be >= source.y + source.height (65 + 31)
+                characterPanelTexture = new Texture2D(GraphicsDevice, placeholderWidth, placeholderHeight);
+                var pixels = Enumerable.Repeat(Color.Magenta, placeholderWidth * placeholderHeight).ToArray();
+                characterPanelTexture.SetData(pixels);
+            }
+            // Analyze the panel source region to find clear areas for bar placement.
+            try
+            {
+                var src = hudPanelSourceRect;
+                var srcPixels = new Color[src.Width * src.Height];
+                characterPanelTexture.GetData(0, src, srcPixels, 0, srcPixels.Length);
+
+                // approximate source Y positions (in source-space) for health, stamina, mana bars
+                int[] approxYs = new int[] { 2, 6, 11 };
+                for (int i = 0; i < approxYs.Length; i++)
+                {
+                    int y = Math.Clamp(approxYs[i], 0, src.Height - 1);
+                    int foundX = 0;
+                    float threshold = 0.25f; // brightness threshold (0..1)
+
+                    for (int x = 0; x < src.Width; x++)
+                    {
+                        // sample a small vertical window around y
+                        int y0 = Math.Max(0, y - 1);
+                        int y1 = Math.Min(src.Height - 1, y + 1);
+                        float avgB = 0f;
+                        int count = 0;
+                        for (int yy = y0; yy <= y1; yy++)
+                        {
+                            var c = srcPixels[yy * src.Width + x];
+                            avgB += (c.R + c.G + c.B) / 3f / 255f;
+                            count++;
+                        }
+                        avgB /= Math.Max(1, count);
+                        if (avgB >= threshold)
+                        {
+                            foundX = x;
+                            break;
+                        }
+                    }
+                    hudBarStartRelX[i] = foundX;
+                }
+            }
+            catch
+            {
+                // if analysis fails, fall back to reasonable defaults
+                hudBarStartRelX[0] = 10;
+                hudBarStartRelX[1] = 10;
+                hudBarStartRelX[2] = 10;
+            }
             backgroundTexture = Content.Load<Texture2D>("forest background");
             introTexture = Content.Load<Texture2D>("forest intro");
             font = Content.Load<SpriteFont>("Font");
@@ -438,6 +510,21 @@ namespace spritesheet
             slimeJump = Content.Load<SoundEffect>("slime jump");
             slimeBeingSlashed = Content.Load<SoundEffect>("slime impact");
             slimeHittingGround = Content.Load<SoundEffect>("slime hit ground");
+
+            // create sound instances after loading resources
+            try
+            {
+                slimeJumpInstance = slimeJump.CreateInstance();
+                slimeJumpInstance.Pitch = -0.2f;
+                slimeJumpInstance.Volume = 0.6f;
+
+                slimeBeingSlashInstance = slimeBeingSlashed.CreateInstance();
+                slimeBeingSlashInstance.Volume = 0.6f;
+
+                slimeHittingGroundInstance = slimeHittingGround.CreateInstance();
+                slimeHittingGroundInstance.Volume = 0.6f;
+            }
+            catch { }
 
             var wholelist = new List<List<Texture2D>>() { Idlespritesheets, Runningspritesheets, Attackspritesheets, Deathspritesheets, Hurtspritesheets };
             spritesheetManager = new SpritesheetManager(wholelist);
@@ -545,6 +632,9 @@ namespace spritesheet
             // load settings (or defaults)
             LoadSettings();
             ApplySettings();
+
+            // start background music after settings applied
+            try { MediaPlayer.Play(song); } catch { }
 
         }
 
@@ -1027,6 +1117,95 @@ namespace spritesheet
                 //// intentionally hide the "Press B to enable barrier editor" prompt
 
                 spritesheetManager.Draw(_spriteBatch, state, frame, playerDrawRect, directionRow, currentColumns, currentRows);
+
+                // draw a specific sub-rectangle from the character panel at the top-left of the screen
+                // source coordinates provided by the user: x=1,y=65,width=86,height=31
+                var panelSource = hudPanelSourceRect; // new Rectangle(1,65,86,31)
+                // make the panel much larger on screen — change panelScale to adjust size
+                int panelScale = 5; // "way bigger" scale factor
+                // small padding from the top-left so it's not flush with the window edge
+                int padding = 10;
+                var panelDest = new Rectangle(padding, padding, panelSource.Width * panelScale, panelSource.Height * panelScale);
+                // draw the panel first (use a layerDepth to make intention explicit)
+                _spriteBatch.Draw(characterPanelTexture, panelDest, panelSource, Color.White, 0f, Vector2.Zero, SpriteEffects.None, 0.5f);
+
+                // draw health / stamina / mana bars from the character_panel spritesheet
+                // legacy source rects (kept for reference)
+                // var healthSource = new Rectangle(70, 146, 2, 2);
+                // var manaSource = new Rectangle(70, 151, 2, 2);
+                // var staminaSource = new Rectangle(70, 156, 2, 2);
+
+                float healthPct = Math.Clamp((float)playerHealth / Math.Max(1, maxPlayerHealth), 0f, 1f);
+                float staminaPct = Math.Clamp((float)playerStamina / Math.Max(1, maxPlayerStamina), 0f, 1f);
+                float manaPct = Math.Clamp((float)playerMana / Math.Max(1, maxPlayerMana), 0f, 1f);
+
+                // For each bar, compute destination based on analyzed offsets inside the source
+                int[] srcBarXs = hudBarStartRelX; // relative to hudPanelSourceRect
+                int[] srcBarYs = hudBarStartRelY; // relative to hudPanelSourceRect
+                int[] pctInts = new int[3] { (int)(healthPct * 1000), (int)(staminaPct * 1000), (int)(manaPct * 1000) };
+
+                // note: per-bar metadata arrays removed (not used). Using explicit healthSrc/manaSrc/staminaSrc below.
+
+                // source rects for bars (in texture pixel coordinates)
+                var healthSrc = new Rectangle(70, 146, 2, 2);
+                var manaSrc = new Rectangle(70, 151, 2, 2);
+                var staminaSrc = new Rectangle(70, 156, 2, 2);
+
+                // prepare destination rects for debug overlay
+                Rectangle destHealthRect = Rectangle.Empty;
+                Rectangle destManaRect = Rectangle.Empty;
+                Rectangle destStaminaRect = Rectangle.Empty;
+
+                // health (draw a dark background so the textured bar is visible, then draw the texture)
+                {
+                    int relX = healthSrc.X - hudPanelSourceRect.X;
+                    int relY = healthSrc.Y - hudPanelSourceRect.Y;
+                    int destX = panelDest.X + relX * panelScale;
+                    int destY = panelDest.Y + relY * panelScale;
+                    int maxW = Math.Max(2, healthSrc.Width * panelScale);
+                    int w = Math.Max(2, (int)(maxW * healthPct));
+                    int h = Math.Max(2, healthSrc.Height * panelScale);
+                    // background
+                    _spriteBatch.Draw(rectangleTexture, new Rectangle(destX, destY, maxW, h), Color.Black * 0.6f);
+                    // draw the actual texture region stretched to the desired size
+                    destHealthRect = new Rectangle(destX, destY, w, h);
+                    // draw health bar on top of the panel
+                    _spriteBatch.Draw(characterPanelTexture, destHealthRect, healthSrc, Color.White, 0f, Vector2.Zero, SpriteEffects.None, 0.4f);
+                }
+
+                // mana
+                {
+                    int relX = manaSrc.X - hudPanelSourceRect.X;
+                    int relY = manaSrc.Y - hudPanelSourceRect.Y;
+                    int destX = panelDest.X + relX * panelScale;
+                    int destY = panelDest.Y + relY * panelScale;
+                    int maxW = Math.Max(2, manaSrc.Width * panelScale);
+                    int w = Math.Max(2, (int)(maxW * manaPct));
+                    int h = Math.Max(2, manaSrc.Height * panelScale);
+                    destManaRect = new Rectangle(destX, destY, w, h);
+                    _spriteBatch.Draw(rectangleTexture, new Rectangle(destX, destY, maxW, h), Color.Black * 0.6f);
+                    // draw the actual mana texture chunk stretched to the desired size
+                    _spriteBatch.Draw(characterPanelTexture, destManaRect, manaSrc, Color.White);
+                }
+
+                // stamina
+                {
+                    int relX = staminaSrc.X - hudPanelSourceRect.X;
+                    int relY = staminaSrc.Y - hudPanelSourceRect.Y;
+                    int destX = panelDest.X + relX * panelScale;
+                    int destY = panelDest.Y + relY * panelScale;
+                    int maxW = Math.Max(2, staminaSrc.Width * panelScale);
+                    int w = Math.Max(2, (int)(maxW * staminaPct));
+                    int h = Math.Max(2, staminaSrc.Height * panelScale);
+                    destStaminaRect = new Rectangle(destX, destY, w, h);
+                    _spriteBatch.Draw(rectangleTexture, new Rectangle(destX, destY, maxW, h), Color.Black * 0.6f);
+                    // draw the actual stamina texture chunk stretched to the desired size
+                    _spriteBatch.Draw(characterPanelTexture, destStaminaRect, staminaSrc, Color.White);
+                }
+
+                // Debug overlays removed — bars are drawn above. Remove this block to hide debug visuals.
+
+                // hud debug removed
 
                 // draw all slimes
                 foreach (var s in slimes)
