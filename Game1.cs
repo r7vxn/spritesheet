@@ -85,19 +85,14 @@ namespace spritesheet
         bool attack = false;
         int playerHealth;
         int playerDamage;
-        // player hurt / knockback state
         bool playerHurt = false;
         float playerHurtTimer = 0f;
         float playerHurtDuration = 0.2f;
         Vector2 playerKnockbackVelocity = Vector2.Zero;
-        // reduced knockback speed to make hits feel less jarring
         float playerKnockbackSpeed = 450f;
-        // invincibility frames after being hit
         bool playerInvincible = false;
         float playerInvincibleTimer = 0f;
-        // slightly longer invincibility so player can move smoothly between hits
         float playerInvincibleDuration = 0.8f;
-        // flag to run hurt animation initialization once
         bool playerHurtStarted = false;
 
 
@@ -145,7 +140,6 @@ namespace spritesheet
 
         int resChange = 2;
 
-        // HUD placeholder values for stamina/mana
         int maxPlayerHealth = 20;
         int playerStamina = 100;
         int maxPlayerStamina = 100;
@@ -157,13 +151,10 @@ namespace spritesheet
         SlimeSoundEffect slimeSoundEffect;
         SlimeAnimationClass slimeAnimationClass;
         List<SlimeAnimationClass> slimes = new List<SlimeAnimationClass>();
-        // Intro screen slimes (separate lightweight behavior)
         List<IntroSlime> introSlimes = new List<IntroSlime>();
-        // whether the options menu overlay is open on the intro screen
         bool optionMenuOpen = false;
         // index of currently-selected option in the overlay (0=music,1=sfx,2=fullscreen)
         int optionSelectedIndex = 0;
-        // settings file path and in-memory settings
         string settingsFilePath;
         Settings settings;
 
@@ -189,7 +180,6 @@ namespace spritesheet
         {
             base.Initialize();
 
-            // initialize previous keyboard state for single-key detection
             previousKeyboardState = Keyboard.GetState();
             barriersFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "barriers.json");
             settingsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
@@ -208,10 +198,8 @@ namespace spritesheet
             slimeHittingGroundInstance = slimeHittingGround.CreateInstance();
             slimeHittingGroundInstance.Volume = 0.6f;
 
-            // load saved custom barriers (appended to built-in map barriers)
             LoadBarriers();
 
-            // ensure barriers are saved when the game exits
             this.Exiting += Game1_Exiting;
 
             screen = Screen.intro;
@@ -350,11 +338,9 @@ namespace spritesheet
                 30,
                 70
             );
-            // check built-in barriers
             foreach (Rectangle barrier in airBarriers)
                 if (nextHitbox.Intersects(barrier))
                     return false;
-            // check user-created barriers (persisted separately)
             foreach (Rectangle barrier in customBarriers)
                 if (nextHitbox.Intersects(barrier))
                     return false;
@@ -444,65 +430,7 @@ namespace spritesheet
             introTitleTexture = Content.Load<Texture2D>("Slime Fall logo");
             customButtons = Content.Load<Texture2D>("Custom Buttons");
             rectangleTexture = Content.Load<Texture2D>("rectangle");
-            // attempt to load the character panel; if missing, create a visible placeholder so Draw() won't NRE
-            try
-            {
-                characterPanelTexture = Content.Load<Texture2D>("character_panel");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Warning: failed to load character_panel: {ex.Message}");
-                int placeholderWidth = 87; // must be >= source.x + source.width (1 + 86)
-                int placeholderHeight = 96; // must be >= source.y + source.height (65 + 31)
-                characterPanelTexture = new Texture2D(GraphicsDevice, placeholderWidth, placeholderHeight);
-                var pixels = Enumerable.Repeat(Color.Magenta, placeholderWidth * placeholderHeight).ToArray();
-                characterPanelTexture.SetData(pixels);
-            }
-            // Analyze the panel source region to find clear areas for bar placement.
-            try
-            {
-                var src = hudPanelSourceRect;
-                var srcPixels = new Color[src.Width * src.Height];
-                characterPanelTexture.GetData(0, src, srcPixels, 0, srcPixels.Length);
-
-                // approximate source Y positions (in source-space) for health, stamina, mana bars
-                int[] approxYs = new int[] { 2, 6, 11 };
-                for (int i = 0; i < approxYs.Length; i++)
-                {
-                    int y = Math.Clamp(approxYs[i], 0, src.Height - 1);
-                    int foundX = 0;
-                    float threshold = 0.25f; // brightness threshold (0..1)
-
-                    for (int x = 0; x < src.Width; x++)
-                    {
-                        // sample a small vertical window around y
-                        int y0 = Math.Max(0, y - 1);
-                        int y1 = Math.Min(src.Height - 1, y + 1);
-                        float avgB = 0f;
-                        int count = 0;
-                        for (int yy = y0; yy <= y1; yy++)
-                        {
-                            var c = srcPixels[yy * src.Width + x];
-                            avgB += (c.R + c.G + c.B) / 3f / 255f;
-                            count++;
-                        }
-                        avgB /= Math.Max(1, count);
-                        if (avgB >= threshold)
-                        {
-                            foundX = x;
-                            break;
-                        }
-                    }
-                    hudBarStartRelX[i] = foundX;
-                }
-            }
-            catch
-            {
-                // if analysis fails, fall back to reasonable defaults
-                hudBarStartRelX[0] = 10;
-                hudBarStartRelX[1] = 10;
-                hudBarStartRelX[2] = 10;
-            }
+            characterPanelTexture = Content.Load<Texture2D>("character_panel");
             backgroundTexture = Content.Load<Texture2D>("forest background");
             introTexture = Content.Load<Texture2D>("forest intro");
             font = Content.Load<SpriteFont>("Font");
@@ -511,7 +439,6 @@ namespace spritesheet
             slimeBeingSlashed = Content.Load<SoundEffect>("slime impact");
             slimeHittingGround = Content.Load<SoundEffect>("slime hit ground");
 
-            // create sound instances after loading resources
             try
             {
                 slimeJumpInstance = slimeJump.CreateInstance();
@@ -534,7 +461,6 @@ namespace spritesheet
             slimeDraw = new SlimeDraw(slimelist);
             slimeManager = new SlimeManager(slimelist);
             slimeSoundEffect = new SlimeSoundEffect();
-            // create multiple slimes at different positions
             var slimePositions = new List<Vector2>()
             {
                 new Vector2(910, 400),
@@ -608,7 +534,6 @@ namespace spritesheet
                 introRect.Center.Y - scaledHeight / 2,
                 scaledWidth,
                 scaledHeight);
-            // store references so we can disable/remove them after use
             Button playBtn = null;
             Button optionBtn = null;
 
@@ -616,24 +541,19 @@ namespace spritesheet
                 onClick: () => {
                     screen = Screen.game;
                     if (playBtn != null) playBtn.Enabled = false;
-                    // remove the options button entirely when starting the game
                     if (optionBtn != null) uiButtons.Remove(optionBtn);
                 }, text: "Play");
 
-            // Option button placed under the Play button
             var optionBtnBounds = new Rectangle(playBtnBounds.X, playBtnBounds.Y + scaledHeight + 20, scaledWidth, scaledHeight);
             optionBtn = uiButtons.Create(optionBtnBounds, frameDefault: 4, frameHovered: 5, framePressed: 6,
                 onClick: () => { optionMenuOpen = !optionMenuOpen; }, text: "Options");
 
-            // Create two simple intro slimes that bounce left/right and jump randomly
             introSlimes.Add(new IntroSlime(new Vector2(760, 360)));
             introSlimes.Add(new IntroSlime(new Vector2(1160, 360)));
 
-            // load settings (or defaults)
             LoadSettings();
             ApplySettings();
 
-            // start background music after settings applied
             try { MediaPlayer.Play(song); } catch { }
 
         }
@@ -642,7 +562,6 @@ namespace spritesheet
         {
             MediaPlayer.IsRepeating = true;
 
-            // drive sounds from a primary slime (first alive, or first existing)
             int primaryFrame = 0;
             SlimeAnimation primaryState = SlimeAnimation.SlimeIdle;
             if (slimes.Count > 0)
@@ -655,22 +574,18 @@ namespace spritesheet
 
             KeyboardState keyboardState = Keyboard.GetState();
 
-            // Update UI buttons with current and previous mouse state
             mouseState = Mouse.GetState();
             uiButtons?.Update(gameTime, mouseState, _previousMouse);
 
             if (screen == Screen.intro)
             {
-                // update intro slimes and handle option menu toggle
                 foreach (var s in introSlimes)
                     s.Update(gameTime);
 
-                // close options menu with Escape (single press)
                 var ks = Keyboard.GetState();
                 if (ks.IsKeyDown(Keys.Escape) && !previousKeyboardState.IsKeyDown(Keys.Escape))
                     optionMenuOpen = false;
 
-                // when options open, allow changing values with arrow keys (single-step per press)
                 if (optionMenuOpen)
                 {
                     int prevIndex = optionSelectedIndex;
@@ -679,7 +594,6 @@ namespace spritesheet
                     if (ks.IsKeyDown(Keys.Up) && !previousKeyboardState.IsKeyDown(Keys.Up)) { optionSelectedIndex = Math.Max(0, optionSelectedIndex - 1); changed = true; }
                     if (ks.IsKeyDown(Keys.Down) && !previousKeyboardState.IsKeyDown(Keys.Down)) { optionSelectedIndex = Math.Min(2, optionSelectedIndex + 1); changed = true; }
 
-                    // smaller volume step for finer control
                     float volStep = 0.01f;
 
                     if (ks.IsKeyDown(Keys.Left) && !previousKeyboardState.IsKeyDown(Keys.Left))
@@ -713,7 +627,6 @@ namespace spritesheet
                         }
                     }
 
-                    // toggle fullscreen with Enter when selected (single press)
                     if (ks.IsKeyDown(Keys.Enter) && !previousKeyboardState.IsKeyDown(Keys.Enter) && optionSelectedIndex == 2)
                     {
                         _graphics.IsFullScreen = !_graphics.IsFullScreen;
@@ -782,14 +695,12 @@ namespace spritesheet
                             Math.Abs(cur.X - barrierStart.X), Math.Abs(cur.Y - barrierStart.Y));
                     }
 
-                    // undo last barrier
                     if (keyboardState.IsKeyDown(Keys.C) && !previousKeyboardState.IsKeyDown(Keys.C))
                     {
                         if (customBarriers.Count > 0) customBarriers.RemoveAt(customBarriers.Count - 1);
                     }
                 }
 
-                // Update all slimes
                 foreach (var s in slimes)
                     s.update(gameTime, playerCollisionRect, playerLocation, slimeFramesPerDirection);
 
@@ -807,7 +718,6 @@ namespace spritesheet
                     slimeDeathDraw = primarySlime.DeathDraw;
                 }
 
-                // handle player input-driven movement unless knocked back
                 playerDirection = Vector2.Zero;
                 if (!playerHurt)
                 {
@@ -828,11 +738,9 @@ namespace spritesheet
                 }
                 else
                 {
-                    // while hurt, apply knockback velocity but allow player input to adjust movement
                     state = Animation.Hurt;
                     float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-                    // primary knockback application
                     Vector2 knockbackMove = playerKnockbackVelocity * dt;
                     Vector2 newPos = playerLocation + knockbackMove;
                     if (CanMoveTo(newPos))
@@ -841,35 +749,29 @@ namespace spritesheet
                     }
                     else
                     {
-                        // cancel knockback if blocked
                         playerKnockbackVelocity = Vector2.Zero;
                         playerHurtTimer = 0f;
                         playerHurt = false;
                     }
 
-                    // allow the player to influence movement while hurt for smoother control
                     if (playerDirection != Vector2.Zero)
                     {
-                        // smaller contribution from input while hurt so knockback still dominates
                         Vector2 inputMove = playerDirection * speed * dt * 0.6f;
                         Vector2 attempted = playerLocation + inputMove;
                         if (CanMoveTo(attempted)) playerLocation = attempted;
                     }
 
-                    // simple damping
                     playerKnockbackVelocity *= 0.4f;
                     playerHurtTimer -= dt;
                     if (playerHurtTimer <= 0f)
                     {
                         playerHurt = false;
                         playerHurtStarted = false;
-                        // when hurt ends, reset animation timing so idle frame shows
                         frame = 0;
                         time = 0f;
                     }
                 }
 
-                //attack collision
                 if (keyboardState.IsKeyDown(Keys.Space))
                 {
                     state = Animation.Attack;
@@ -883,13 +785,11 @@ namespace spritesheet
                 else if (keyboardState.IsKeyDown(Keys.R)) state = Animation.Death;
                 else if (keyboardState.IsKeyDown(Keys.Q)) state = Animation.Hurt;
 
-                // Set player facing direction
                 if (playerDirection.X < 0) directionRow = leftRow;
                 else if (playerDirection.X > 0) directionRow = rightRow;
                 else if (playerDirection.Y < 0) directionRow = downRow;
                 else if (playerDirection.Y > 0) directionRow = upRow;
 
-                //collision
                 Vector2 newPosX = playerLocation + new Vector2(playerDirection.X * speed, 0);
                 if (CanMoveTo(newPosX)) playerLocation = newPosX;
 
@@ -902,7 +802,6 @@ namespace spritesheet
 
                 // animation
                 frames = framesPerDirection[state][directionRow];
-                // shorten hurt animation time by reducing frame interval (plays faster)
                 frameSpeed = (state == Animation.Attack) ? 0.08f : (state == Animation.Hurt) ? 0.08f : (state == Animation.Idle && directionRow == downRow) ? 0.3f : 0.12f;
 
                 time += (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -911,12 +810,10 @@ namespace spritesheet
                     time = 0f;
                     if (state == Animation.Hurt && playerHurtStarted)
                     {
-                        // advance hurt animation but do not loop; stop at last frame
                         frame++;
                         if (frame >= frames)
                         {
                             frame = frames - 1;
-                            // mark hurt animation as having finished its single play-through
                             playerHurtStarted = false;
                         }
                     }
@@ -926,7 +823,6 @@ namespace spritesheet
                         if (frame >= frames) frame = 0;
                     }
                 }
-                //player attack (apply damage to any slime hit)
                 if (state == Animation.Attack)
                 {
                     if (frame == 4 && !attacked)
@@ -935,7 +831,6 @@ namespace spritesheet
                         {
                             if (!s.IsDead && s.CurrentCollisionRect.Intersects(attackCollisionRect))
                             {
-                                // pass player location so the slime can be knocked back away from the attacker
                                 s.ApplyDamage(playerDamage, playerLocation);
                                 attacked = true;
                                 break;
@@ -946,39 +841,31 @@ namespace spritesheet
                 }
 
 
-                //player death
                 if (playerHealth <= 0)
                 {
                     playerDied = true;
                     screen = Screen.end;
                 }
 
-                // dmg to player (any slime attacking) + apply knockback. Respect invincibility frames.
                 if (!playerInvincible)
                 {
                     var attacker = slimes.FirstOrDefault(s => s.CurrentAttackCollision && playerCollisionRect.Intersects(s.CurrentAttackRect));
                     if (attacker != null)
                     {
-                        // apply damage
                         playerHealth -= slimeDamage;
 
-                        // compute knockback direction from slime toward player
                         Vector2 sourcePos = new Vector2(attacker.CurrentCollisionRect.Center.X, attacker.CurrentCollisionRect.Center.Y);
                         Vector2 dir = playerLocation - sourcePos;
                         if (dir != Vector2.Zero) dir.Normalize(); else dir = new Vector2(0, -1);
 
-                        // start hurt/knockback
-                        // increase knockback slightly when player is moving to give more response while walking
                         float knockbackMultiplier = (playerDirection == Vector2.Zero) ? 2.5f : 1.6f;
                         playerHurt = true;
                         playerHurtStarted = true;
                         playerHurtTimer = playerHurtDuration * knockbackMultiplier;
                         playerKnockbackVelocity = dir * playerKnockbackSpeed * knockbackMultiplier;
-                        // reset player animation frame/time so hurt animation displays reliably
                         frame = 0;
                         time = 0f;
 
-                        // set invincibility frames so player can move smoothly without repeated hits
                         playerInvincible = true;
                         playerInvincibleTimer = playerInvincibleDuration;
 
@@ -993,7 +880,6 @@ namespace spritesheet
                     if (slimeAttackTimer <= 0f) slimeAttacked = false;
                 }
 
-                // end the game when all slimes have finished their death animation
                 if (slimes.Count > 0 && slimes.All(s => s.DeathDraw))
                 {
                     slimeDied = true;
@@ -1011,13 +897,10 @@ namespace spritesheet
                     Exit();
                 }
             }
-            // store keyboard state for next-frame single-key detection
             previousKeyboardState = keyboardState;
 
-            // store previous mouse state for UI click detection
             _previousMouse = mouseState;
 
-            // update invincibility timer
             if (playerInvincible)
             {
                 playerInvincibleTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -1041,7 +924,6 @@ namespace spritesheet
                 uiButtons?.Draw(_spriteBatch, font);
                 _spriteBatch.Draw(introTitleTexture, introTitleRect, Color.White);
 
-                // draw intro slimes
                 foreach (var s in introSlimes)
                 {
                     var r = s.GetDrawRect();
@@ -1052,25 +934,21 @@ namespace spritesheet
                     slimeManager.Draw(_spriteBatch, state, s.GetFrame(), r, dir, slimeColumns, slimeRows);
                 }
 
-                // draw options overlay if open (larger)
                 if (optionMenuOpen)
                 {
-                    // make the options overlay slightly wider and keep it centered
-                    int overlayWidth = 1120; // increased from 960
+                    int overlayWidth = 1120; 
                     int overlayHeight = 760;
                     int overlayX = (window.Width - overlayWidth) / 2;
                     int overlayY = 160;
                     var overlay = new Rectangle(overlayX, overlayY, overlayWidth, overlayHeight);
                     _spriteBatch.Draw(rectangleTexture, overlay, Color.Black * 0.75f);
-                    int titleOffset = 56; // vertical offset for the title from the top of the overlay
-                    float lineSpacing = 64f; // change this to increase/decrease spacing between lines
+                    int titleOffset = 56; 
+                    float lineSpacing = 64f; 
                     Color normal = Color.White;
                     Color highlight = Color.Yellow;
 
                     _spriteBatch.DrawString(font, "Options", new Vector2(overlay.X + 32, overlay.Y + titleOffset), Color.White);
-                    // show the small hint closer to the title, then leave one full lineSpacing gap before the options
 
-                    // Draw option entries starting one lineSpacing below the title (extra spacing under 'Options')
                     float y = overlay.Y + titleOffset + lineSpacing;
 
                     var musicCol = optionSelectedIndex == 0 ? highlight : normal;
@@ -1084,7 +962,6 @@ namespace spritesheet
                     y += lineSpacing;
                     _spriteBatch.DrawString(font, $"Fullscreen: {settings.Fullscreen}", new Vector2(overlay.X + 60, y), fullCol);
                     y += lineSpacing;
-                    // multi-line help text (spaced for readability)
                     _spriteBatch.DrawString(font, "Use Up/Down to select", new Vector2(overlay.X + 60, y), Color.LightGray);
                     y += lineSpacing;
                     _spriteBatch.DrawString(font, "Left/Right to change values", new Vector2(overlay.X + 60, y), Color.LightGray);
@@ -1104,7 +981,6 @@ namespace spritesheet
 
                 _spriteBatch.Draw(backgroundTexture, window, Color.White);
 
-                // draw UI buttons for in-game HUD if any
                 uiButtons?.Draw(_spriteBatch, font);
 
                 //// draw editor UI
@@ -1114,23 +990,17 @@ namespace spritesheet
                 //    if (currentBarrier != Rectangle.Empty)
                 //        _spriteBatch.Draw(rectangleTexture, currentBarrier, Color.Blue * 0.5f);
                 //}
-                //// intentionally hide the "Press B to enable barrier editor" prompt
 
                 spritesheetManager.Draw(_spriteBatch, state, frame, playerDrawRect, directionRow, currentColumns, currentRows);
 
-                // draw a specific sub-rectangle from the character panel at the top-left of the screen
-                // source coordinates provided by the user: x=1,y=65,width=86,height=31
+                // source coordinates: x=1,y=65,width=86,height=31
                 var panelSource = hudPanelSourceRect; // new Rectangle(1,65,86,31)
-                // make the panel much larger on screen — change panelScale to adjust size
-                int panelScale = 5; // "way bigger" scale factor
-                // small padding from the top-left so it's not flush with the window edge
+                int panelScale = 5; 
                 int padding = 10;
                 var panelDest = new Rectangle(padding, padding, panelSource.Width * panelScale, panelSource.Height * panelScale);
-                // draw the panel first (use a layerDepth to make intention explicit)
                 _spriteBatch.Draw(characterPanelTexture, panelDest, panelSource, Color.White, 0f, Vector2.Zero, SpriteEffects.None, 0.5f);
 
                 // draw health / stamina / mana bars from the character_panel spritesheet
-                // legacy source rects (kept for reference)
                 // var healthSource = new Rectangle(70, 146, 2, 2);
                 // var manaSource = new Rectangle(70, 151, 2, 2);
                 // var staminaSource = new Rectangle(70, 156, 2, 2);
@@ -1139,24 +1009,20 @@ namespace spritesheet
                 float staminaPct = Math.Clamp((float)playerStamina / Math.Max(1, maxPlayerStamina), 0f, 1f);
                 float manaPct = Math.Clamp((float)playerMana / Math.Max(1, maxPlayerMana), 0f, 1f);
 
-                // For each bar, compute destination based on analyzed offsets inside the source
-                int[] srcBarXs = hudBarStartRelX; // relative to hudPanelSourceRect
-                int[] srcBarYs = hudBarStartRelY; // relative to hudPanelSourceRect
+                int[] srcBarXs = hudBarStartRelX;
+                int[] srcBarYs = hudBarStartRelY; 
                 int[] pctInts = new int[3] { (int)(healthPct * 1000), (int)(staminaPct * 1000), (int)(manaPct * 1000) };
 
-                // note: per-bar metadata arrays removed (not used). Using explicit healthSrc/manaSrc/staminaSrc below.
 
-                // source rects for bars (in texture pixel coordinates)
                 var healthSrc = new Rectangle(70, 146, 2, 2);
                 var manaSrc = new Rectangle(70, 151, 2, 2);
                 var staminaSrc = new Rectangle(70, 156, 2, 2);
 
-                // prepare destination rects for debug overlay
                 Rectangle destHealthRect = Rectangle.Empty;
                 Rectangle destManaRect = Rectangle.Empty;
                 Rectangle destStaminaRect = Rectangle.Empty;
 
-                // health (draw a dark background so the textured bar is visible, then draw the texture)
+                // health 
                 {
                     int relX = healthSrc.X - hudPanelSourceRect.X;
                     int relY = healthSrc.Y - hudPanelSourceRect.Y;
@@ -1165,11 +1031,9 @@ namespace spritesheet
                     int maxW = Math.Max(2, healthSrc.Width * panelScale);
                     int w = Math.Max(2, (int)(maxW * healthPct));
                     int h = Math.Max(2, healthSrc.Height * panelScale);
-                    // background
-                    _spriteBatch.Draw(rectangleTexture, new Rectangle(destX, destY, maxW, h), Color.Black * 0.6f);
-                    // draw the actual texture region stretched to the desired size
+         
                     destHealthRect = new Rectangle(destX, destY, w, h);
-                    // draw health bar on top of the panel
+
                     _spriteBatch.Draw(characterPanelTexture, destHealthRect, healthSrc, Color.White, 0f, Vector2.Zero, SpriteEffects.None, 0.4f);
                 }
 
@@ -1182,9 +1046,9 @@ namespace spritesheet
                     int maxW = Math.Max(2, manaSrc.Width * panelScale);
                     int w = Math.Max(2, (int)(maxW * manaPct));
                     int h = Math.Max(2, manaSrc.Height * panelScale);
+
                     destManaRect = new Rectangle(destX, destY, w, h);
-                    _spriteBatch.Draw(rectangleTexture, new Rectangle(destX, destY, maxW, h), Color.Black * 0.6f);
-                    // draw the actual mana texture chunk stretched to the desired size
+
                     _spriteBatch.Draw(characterPanelTexture, destManaRect, manaSrc, Color.White);
                 }
 
@@ -1197,17 +1061,13 @@ namespace spritesheet
                     int maxW = Math.Max(2, staminaSrc.Width * panelScale);
                     int w = Math.Max(2, (int)(maxW * staminaPct));
                     int h = Math.Max(2, staminaSrc.Height * panelScale);
+
                     destStaminaRect = new Rectangle(destX, destY, w, h);
-                    _spriteBatch.Draw(rectangleTexture, new Rectangle(destX, destY, maxW, h), Color.Black * 0.6f);
-                    // draw the actual stamina texture chunk stretched to the desired size
+
                     _spriteBatch.Draw(characterPanelTexture, destStaminaRect, staminaSrc, Color.White);
                 }
 
-                // Debug overlays removed — bars are drawn above. Remove this block to hide debug visuals.
 
-                // hud debug removed
-
-                // draw all slimes
                 foreach (var s in slimes)
                 {
                     if (s.DeathDraw) continue;
@@ -1272,7 +1132,6 @@ namespace spritesheet
             airBarriers.Add(new Rectangle(645, 840, 160, 50));
         }
 
-        // persist barriers to disk so user edits survive restarts
         private void SaveBarriers()
         {
             try
