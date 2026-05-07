@@ -983,112 +983,103 @@ namespace spritesheet
 
                 uiButtons?.Draw(_spriteBatch, font);
 
-                //// draw editor UI
-                //if (barrierEditMode)
-                //{
-                //    _spriteBatch.DrawString(font, "Barrier Edit: ON - Press B to toggle, Left-drag to create, C undo", new Vector2(20, 20), Color.Yellow);
-                //    if (currentBarrier != Rectangle.Empty)
-                //        _spriteBatch.Draw(rectangleTexture, currentBarrier, Color.Blue * 0.5f);
-                //}
+                spritesheetManager.Draw(
+                    _spriteBatch,
+                    state,
+                    frame,
+                    playerDrawRect,
+                    directionRow,
+                    currentColumns,
+                    currentRows
+                );
 
-                spritesheetManager.Draw(_spriteBatch, state, frame, playerDrawRect, directionRow, currentColumns, currentRows);
-
-                // source coordinates: x=1,y=65,width=86,height=31
-                var panelSource = hudPanelSourceRect; // new Rectangle(1,65,86,31)
-                int panelScale = 5; 
+                var panelSource = hudPanelSourceRect;
+                int panelScale = 5;
                 int padding = 10;
-                var panelDest = new Rectangle(padding, padding, panelSource.Width * panelScale, panelSource.Height * panelScale);
-                _spriteBatch.Draw(characterPanelTexture, panelDest, panelSource, Color.White, 0f, Vector2.Zero, SpriteEffects.None, 0.5f);
 
-                // draw health / stamina / mana bars from the character_panel spritesheet
-                // var healthSource = new Rectangle(70, 146, 2, 2);
-                // var manaSource = new Rectangle(70, 151, 2, 2);
-                // var staminaSource = new Rectangle(70, 156, 2, 2);
+                var panelDest = new Rectangle(
+                    padding,
+                    padding,
+                    panelSource.Width * panelScale,
+                    panelSource.Height * panelScale
+                );
+
+                _spriteBatch.Draw(characterPanelTexture, panelDest, panelSource, Color.White);
 
                 float healthPct = Math.Clamp((float)playerHealth / Math.Max(1, maxPlayerHealth), 0f, 1f);
-                float staminaPct = Math.Clamp((float)playerStamina / Math.Max(1, maxPlayerStamina), 0f, 1f);
                 float manaPct = Math.Clamp((float)playerMana / Math.Max(1, maxPlayerMana), 0f, 1f);
+                float staminaPct = Math.Clamp((float)playerStamina / Math.Max(1, maxPlayerStamina), 0f, 1f);
 
-                int[] srcBarXs = hudBarStartRelX;
-                int[] srcBarYs = hudBarStartRelY; 
-                int[] pctInts = new int[3] { (int)(healthPct * 1000), (int)(staminaPct * 1000), (int)(manaPct * 1000) };
+                int baseX = panelDest.X + 145;
+                int baseY = panelDest.Y + 45;
+                int spacing = 25;
 
+                int healthWidth = 260;
+                int healthHeight = 10;
 
-                var healthSrc = new Rectangle(70, 146, 2, 2);
-                var manaSrc = new Rectangle(70, 151, 2, 2);
-                var staminaSrc = new Rectangle(70, 156, 2, 2);
+                int manaWidth = 110;
+                int manaHeight = 10;
 
-                Rectangle destHealthRect = Rectangle.Empty;
-                Rectangle destManaRect = Rectangle.Empty;
-                Rectangle destStaminaRect = Rectangle.Empty;
+                int staminaWidth = 160;
+                int staminaHeight = 12;
 
-                // health 
-                {
-                    int relX = healthSrc.X - hudPanelSourceRect.X;
-                    int relY = healthSrc.Y - hudPanelSourceRect.Y;
-                    int destX = panelDest.X + relX * panelScale;
-                    int destY = panelDest.Y + relY * panelScale;
-                    int maxW = Math.Max(2, healthSrc.Width * panelScale);
-                    int w = Math.Max(2, (int)(maxW * healthPct));
-                    int h = Math.Max(2, healthSrc.Height * panelScale);
-         
-                    destHealthRect = new Rectangle(destX, destY, w, h);
+                _spriteBatch.Draw(
+                    characterPanelTexture,
+                    new Rectangle(
+                        baseX,
+                        baseY,
+                        (int)(healthWidth * healthPct),
+                        healthHeight
+                    ),
+                    new Rectangle(70, 146, 2, 2),
+                    Color.White
+                );
 
-                    _spriteBatch.Draw(characterPanelTexture, destHealthRect, healthSrc, Color.White, 0f, Vector2.Zero, SpriteEffects.None, 0.4f);
-                }
+                _spriteBatch.Draw(
+                    characterPanelTexture,
+                    new Rectangle(
+                        baseX,
+                        baseY + spacing,
+                        (int)(manaWidth * manaPct),
+                        manaHeight
+                    ),
+                    new Rectangle(70, 151, 2, 2),
+                    Color.White
+                );
 
-                // mana
-                {
-                    int relX = manaSrc.X - hudPanelSourceRect.X;
-                    int relY = manaSrc.Y - hudPanelSourceRect.Y;
-                    int destX = panelDest.X + relX * panelScale;
-                    int destY = panelDest.Y + relY * panelScale;
-                    int maxW = Math.Max(2, manaSrc.Width * panelScale);
-                    int w = Math.Max(2, (int)(maxW * manaPct));
-                    int h = Math.Max(2, manaSrc.Height * panelScale);
-
-                    destManaRect = new Rectangle(destX, destY, w, h);
-
-                    _spriteBatch.Draw(characterPanelTexture, destManaRect, manaSrc, Color.White);
-                }
-
-                // stamina
-                {
-                    int relX = staminaSrc.X - hudPanelSourceRect.X;
-                    int relY = staminaSrc.Y - hudPanelSourceRect.Y;
-                    int destX = panelDest.X + relX * panelScale;
-                    int destY = panelDest.Y + relY * panelScale;
-                    int maxW = Math.Max(2, staminaSrc.Width * panelScale);
-                    int w = Math.Max(2, (int)(maxW * staminaPct));
-                    int h = Math.Max(2, staminaSrc.Height * panelScale);
-
-                    destStaminaRect = new Rectangle(destX, destY, w, h);
-
-                    _spriteBatch.Draw(characterPanelTexture, destStaminaRect, staminaSrc, Color.White);
-                }
-
+                _spriteBatch.Draw(
+                    characterPanelTexture,
+                    new Rectangle(
+                        baseX,
+                        baseY + spacing * 2,
+                        (int)(staminaWidth * staminaPct),
+                        staminaHeight
+                    ),
+                    new Rectangle(70, 156, 2, 2),
+                    Color.White
+                );
 
                 foreach (var s in slimes)
                 {
                     if (s.DeathDraw) continue;
+
                     var sState = s.CurrentState;
                     var sDir = s.CurrentDirectionRow;
+
                     int slimeColumns = slimeFramesPerDirection[sState][sDir];
                     int slimeRows = slimeRowsPerState[sState];
-                    slimeManager.Draw(_spriteBatch, sState, s.CurrentFrame, s.CurrentDrawRect, sDir, slimeColumns, slimeRows);
+
+                    slimeManager.Draw(
+                        _spriteBatch,
+                        sState,
+                        s.CurrentFrame,
+                        s.CurrentDrawRect,
+                        sDir,
+                        slimeColumns,
+                        slimeRows
+                    );
                 }
 
-
-                //// draw built-in barriers
-                //foreach (Rectangle barrier in airBarriers)
-                //{
-                //    _spriteBatch.Draw(rectangleTexture, barrier, Color.Red * 0.3f);
-                //}
-                //// draw user-created barriers (persisted)
-                //foreach (Rectangle barrier in customBarriers)
-                //{
-                //    _spriteBatch.Draw(rectangleTexture, barrier, Color.Blue * 0.35f);
-                //}
                 _spriteBatch.End();
             }
             if (screen == Screen.end)
