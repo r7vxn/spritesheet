@@ -1017,11 +1017,11 @@ namespace spritesheet
                 int healthWidth = 260;
                 int healthHeight = 10;
 
-                int manaWidth = 110;
+                int manaWidth = 215;
                 int manaHeight = 10;
 
-                int staminaWidth = 160;
-                int staminaHeight = 12;
+                int staminaWidth = 190;
+                int staminaHeight = 10;
 
                 _spriteBatch.Draw(
                     characterPanelTexture,
@@ -1038,7 +1038,7 @@ namespace spritesheet
                 _spriteBatch.Draw(
                     characterPanelTexture,
                     new Rectangle(
-                        baseX,
+                        baseX + 10,
                         baseY + spacing,
                         (int)(manaWidth * manaPct),
                         manaHeight
@@ -1050,7 +1050,7 @@ namespace spritesheet
                 _spriteBatch.Draw(
                     characterPanelTexture,
                     new Rectangle(
-                        baseX,
+                        baseX + 5,
                         baseY + spacing * 2,
                         (int)(staminaWidth * staminaPct),
                         staminaHeight
