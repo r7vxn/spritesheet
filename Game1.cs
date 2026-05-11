@@ -49,6 +49,9 @@ namespace spritesheet
         GraphicsDeviceManager _graphics;
         SpriteBatch _spriteBatch;
 
+        Texture2D shopTexture;
+        Texture2D menuTexture;
+        Texture2D equipmentTexture;
         Texture2D customButtons;
         Rectangle window = new Rectangle(0, 0, 1920, 1080);
         Texture2D rectangleTexture;
@@ -427,6 +430,9 @@ namespace spritesheet
                 Content.Load<Texture2D>("Slime1_Hurt")
             };
 
+            shopTexture = Content.Load<Texture2D>("Shop");
+            equipmentTexture = Content.Load<Texture2D>("Equipment");
+            menuTexture = Content.Load<Texture2D>("Main_menu");
             introTitleTexture = Content.Load<Texture2D>("Slime Fall logo");
             customButtons = Content.Load<Texture2D>("Custom Buttons");
             rectangleTexture = Content.Load<Texture2D>("rectangle");
