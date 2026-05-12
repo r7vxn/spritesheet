@@ -72,6 +72,11 @@ namespace spritesheet
         // previous mouse state for UI click detection
         MouseState _previousMouse;
         Buttons uiButtons;
+        // ui button atlas geometry (set in LoadContent)
+        int uiBtnFrameWidth = 0;
+        int uiBtnFrameHeight = 0;
+        int uiBtnColumns = 4;
+        Dictionary<int, Rectangle> uiCustomSourceRects;
         // barrier editor fields
         bool barrierEditMode = false;
         Point barrierStart;
@@ -156,6 +161,23 @@ namespace spritesheet
         List<SlimeAnimationClass> slimes = new List<SlimeAnimationClass>();
         List<IntroSlime> introSlimes = new List<IntroSlime>();
         bool optionMenuOpen = false;
+        bool gamePaused = false;
+        // pause menu buttons
+        Button pauseResumeBtn;
+        Button pauseOptionsBtn;
+        Button pauseQuitBtn;
+        Button pauseShopBtn;
+        Button pauseInventoryBtn;
+        Button pauseCraftBtn;
+
+        // placeholders for future actions
+        bool showShop = false;
+        bool showInventory = false;
+        bool showCraft = false;
+        // pause panel geometry (computed in LoadContent)
+        Rectangle pausePanelDest = Rectangle.Empty;
+        Rectangle pauseMenuSource = Rectangle.Empty;
+        int pausePanelScale = 4;
         // index of currently-selected option in the overlay (0=music,1=sfx,2=fullscreen)
         int optionSelectedIndex = 0;
         string settingsFilePath;
@@ -554,6 +576,54 @@ namespace spritesheet
             optionBtn = uiButtons.Create(optionBtnBounds, frameDefault: 4, frameHovered: 5, framePressed: 6,
                 onClick: () => { optionMenuOpen = !optionMenuOpen; }, text: "Options");
 
+            // Create pause menu buttons (initially disabled)
+            pauseMenuSource = new Rectangle(96, 4, 80, 168);
+            pausePanelScale = 6; // make panel larger for visibility
+            int pausePanelWidth = pauseMenuSource.Width * pausePanelScale;
+            int pausePanelHeight = pauseMenuSource.Height * pausePanelScale;
+            pausePanelDest = new Rectangle(window.Center.X - pausePanelWidth / 2, window.Center.Y - pausePanelHeight / 2, pausePanelWidth, pausePanelHeight);
+
+            int btnWidth = pausePanelWidth - 40;
+            int btnHeight = 56;
+            int btnX = pausePanelDest.X + 20;
+            int startY = pausePanelDest.Y + 110;
+            int spacing = btnHeight + 12;
+
+            pauseResumeBtn = uiButtons.Create(new Rectangle(btnX, startY + spacing * 0, btnWidth, btnHeight), frameDefault: 0, frameHovered: 1, framePressed: 2,
+                onClick: () => {
+                    gamePaused = false;
+                    // disable pause buttons
+                    pauseResumeBtn.Enabled = false;
+                    pauseOptionsBtn.Enabled = false;
+                    pauseQuitBtn.Enabled = false;
+                    pauseShopBtn.Enabled = false;
+                    pauseInventoryBtn.Enabled = false;
+                    pauseCraftBtn.Enabled = false;
+                }, text: "Resume");
+
+            pauseOptionsBtn = uiButtons.Create(new Rectangle(btnX, startY + spacing * 1, btnWidth, btnHeight), frameDefault: 0, frameHovered: 1, framePressed: 2,
+                onClick: () => { optionMenuOpen = !optionMenuOpen; }, text: "Options");
+
+            pauseShopBtn = uiButtons.Create(new Rectangle(btnX, startY + spacing * 2, btnWidth, btnHeight), frameDefault: 0, frameHovered: 1, framePressed: 2,
+                onClick: () => { showShop = true; }, text: "Shop");
+
+            pauseInventoryBtn = uiButtons.Create(new Rectangle(btnX, startY + spacing * 3, btnWidth, btnHeight), frameDefault: 0, frameHovered: 1, framePressed: 2,
+                onClick: () => { showInventory = true; }, text: "Inventory");
+
+            pauseCraftBtn = uiButtons.Create(new Rectangle(btnX, startY + spacing * 4, btnWidth, btnHeight), frameDefault: 0, frameHovered: 1, framePressed: 2,
+                onClick: () => { showCraft = true; }, text: "Craft");
+
+            pauseQuitBtn = uiButtons.Create(new Rectangle(btnX, startY + spacing * 5, btnWidth, btnHeight), frameDefault: 0, frameHovered: 1, framePressed: 2,
+                onClick: () => { Exit(); }, text: "Quit");
+
+            // disable them until pause is opened
+            pauseResumeBtn.Enabled = false;
+            pauseOptionsBtn.Enabled = false;
+            pauseQuitBtn.Enabled = false;
+            pauseShopBtn.Enabled = false;
+            pauseInventoryBtn.Enabled = false;
+            pauseCraftBtn.Enabled = false;
+
             introSlimes.Add(new IntroSlime(new Vector2(760, 360)));
             introSlimes.Add(new IntroSlime(new Vector2(1160, 360)));
 
@@ -647,6 +717,21 @@ namespace spritesheet
             }
             if (screen == Screen.game)
             {
+                // toggle pause with Escape
+                if (keyboardState.IsKeyDown(Keys.Escape) && !previousKeyboardState.IsKeyDown(Keys.Escape))
+                {
+                    gamePaused = !gamePaused;
+                    // enable/disable pause buttons
+                    if (pauseResumeBtn != null) pauseResumeBtn.Enabled = gamePaused;
+                    if (pauseOptionsBtn != null) pauseOptionsBtn.Enabled = gamePaused;
+                    if (pauseQuitBtn != null) pauseQuitBtn.Enabled = gamePaused;
+                    if (pauseShopBtn != null) pauseShopBtn.Enabled = gamePaused;
+                    if (pauseInventoryBtn != null) pauseInventoryBtn.Enabled = gamePaused;
+                    if (pauseCraftBtn != null) pauseCraftBtn.Enabled = gamePaused;
+                }
+
+                if (!gamePaused)
+                {
 
                 //// toggle and handle barrier editor
                 //if (keyboardState.IsKeyDown(Keys.B) && !previousKeyboardState.IsKeyDown(Keys.B))
@@ -892,7 +977,8 @@ namespace spritesheet
                     screen = Screen.end;
                 }
 
-    
+                }
+
             }
 
             if (screen == Screen.end)
@@ -1084,6 +1170,52 @@ namespace spritesheet
                         slimeColumns,
                         slimeRows
                     );
+                }
+
+                // draw pause menu overlay when paused
+                if (gamePaused)
+                {
+                    // darken background
+                    _spriteBatch.Draw(rectangleTexture, window, Color.Black * 0.5f);
+
+
+                    // use precomputed pause panel geometry
+                    if (pauseMenuSource == Rectangle.Empty)
+                    {
+                        pauseMenuSource = new Rectangle(96, 4, 80, 168);
+                        pausePanelDest = new Rectangle(window.Center.X - (pauseMenuSource.Width * pausePanelScale) / 2, window.Center.Y - (pauseMenuSource.Height * pausePanelScale) / 2, pauseMenuSource.Width * pausePanelScale, pauseMenuSource.Height * pausePanelScale);
+                    }
+
+                    _spriteBatch.Draw(menuTexture, pausePanelDest, pauseMenuSource, Color.White);
+
+                    // draw pause menu buttons on top of the panel
+                    uiButtons?.Draw(_spriteBatch, font);
+
+                    // draw debug/visibility rectangles for pause buttons (helps ensure they are positioned correctly)
+                    void DrawBtnDebug(Button b)
+                    {
+                        if (b == null) return;
+                        // access Bounds via reflection-like public field
+                        try
+                        {
+                            var rect = b.Bounds;
+                            _spriteBatch.Draw(rectangleTexture, rect, Color.White * 0.35f);
+                        }
+                        catch { }
+                    }
+
+                    DrawBtnDebug(pauseResumeBtn);
+                    DrawBtnDebug(pauseOptionsBtn);
+                    DrawBtnDebug(pauseShopBtn);
+                    DrawBtnDebug(pauseInventoryBtn);
+                    DrawBtnDebug(pauseCraftBtn);
+                    DrawBtnDebug(pauseQuitBtn);
+
+                    // draw title on panel
+                    var title = "Paused";
+                    var titlePos = new Vector2(window.Center.X, pausePanelDest.Y + 36);
+                    var titleOrigin = font.MeasureString(title) / 2f;
+                    _spriteBatch.DrawString(font, title, titlePos, Color.Yellow, 0f, titleOrigin, 1.2f, SpriteEffects.None, 0f);
                 }
 
                 _spriteBatch.End();
