@@ -17,7 +17,6 @@ namespace spritesheet
         intro, game, end
     }
 
-
     public enum Animation
     {
         Idle = 0,
@@ -169,6 +168,10 @@ namespace spritesheet
         Button pauseShopBtn;
         Button pauseInventoryBtn;
         Button pauseCraftBtn;
+        Rectangle pauseCloseRect;
+        int pauseCloseSize = 36;
+        int pauseCloseMarginX = 28;
+        int pauseCloseMarginY = 22;
 
         // placeholders for future actions
         bool showShop = false;
@@ -584,7 +587,7 @@ namespace spritesheet
             pausePanelDest = new Rectangle(window.Center.X - pausePanelWidth / 2, window.Center.Y - pausePanelHeight / 2, pausePanelWidth, pausePanelHeight);
 
             int btnWidth = pausePanelWidth - 40;
-            int btnHeight = 56;
+            int btnHeight = 110;
             int btnX = pausePanelDest.X + 20;
             int startY = pausePanelDest.Y + 110;
             int spacing = btnHeight + 12;
@@ -599,10 +602,14 @@ namespace spritesheet
                     pauseShopBtn.Enabled = false;
                     pauseInventoryBtn.Enabled = false;
                     pauseCraftBtn.Enabled = false;
+
+            // compute close button rect (top-right of panel) using configurable fields
+            pauseCloseRect = new Rectangle(pausePanelDest.Right - pauseCloseSize - pauseCloseMarginX, pausePanelDest.Y + pauseCloseMarginY, pauseCloseSize, pauseCloseSize);
                 }, text: "Resume");
 
-            pauseOptionsBtn = uiButtons.Create(new Rectangle(btnX, startY + spacing * 1, btnWidth, btnHeight), frameDefault: 0, frameHovered: 1, framePressed: 2,
-                onClick: () => { optionMenuOpen = !optionMenuOpen; }, text: "Options");
+            // Use same frames as main menu Options button and toggle behavior
+            pauseOptionsBtn = uiButtons.Create(new Rectangle(btnX, startY + spacing * 1, btnWidth, btnHeight), frameDefault: 4, frameHovered: 5, framePressed: 6,
+                onClick: () => { optionMenuOpen = !optionMenuOpen; if (optionMenuOpen) optionSelectedIndex = 0; }, text: "Options");
 
             pauseShopBtn = uiButtons.Create(new Rectangle(btnX, startY + spacing * 2, btnWidth, btnHeight), frameDefault: 0, frameHovered: 1, framePressed: 2,
                 onClick: () => { showShop = true; }, text: "Shop");
@@ -652,6 +659,27 @@ namespace spritesheet
 
             mouseState = Mouse.GetState();
             uiButtons?.Update(gameTime, mouseState, _previousMouse);
+
+            // handle close-rect clicks when paused
+            if (gamePaused && pauseCloseRect != Rectangle.Empty)
+            {
+                var ms = Mouse.GetState();
+                if (ms.LeftButton == ButtonState.Pressed && _previousMouse.LeftButton == ButtonState.Released)
+                {
+                    var p = new Point(ms.X, ms.Y);
+                    if (pauseCloseRect.Contains(p))
+                    {
+                        gamePaused = false;
+                        // disable pause buttons
+                        if (pauseResumeBtn != null) pauseResumeBtn.Enabled = false;
+                        if (pauseOptionsBtn != null) pauseOptionsBtn.Enabled = false;
+                        if (pauseQuitBtn != null) pauseQuitBtn.Enabled = false;
+                        if (pauseShopBtn != null) pauseShopBtn.Enabled = false;
+                        if (pauseInventoryBtn != null) pauseInventoryBtn.Enabled = false;
+                        if (pauseCraftBtn != null) pauseCraftBtn.Enabled = false;
+                    }
+                }
+            }
 
             if (screen == Screen.intro)
             {
@@ -728,6 +756,11 @@ namespace spritesheet
                     if (pauseShopBtn != null) pauseShopBtn.Enabled = gamePaused;
                     if (pauseInventoryBtn != null) pauseInventoryBtn.Enabled = gamePaused;
                     if (pauseCraftBtn != null) pauseCraftBtn.Enabled = gamePaused;
+                    // recompute close rect when toggling so it matches panel position
+                    if (pausePanelDest != Rectangle.Empty)
+                    {
+                        pauseCloseRect = new Rectangle(pausePanelDest.Right - pauseCloseSize - pauseCloseMarginX, pausePanelDest.Y + pauseCloseMarginY, pauseCloseSize, pauseCloseSize);
+                    }
                 }
 
                 if (!gamePaused)
@@ -1186,36 +1219,51 @@ namespace spritesheet
                         pausePanelDest = new Rectangle(window.Center.X - (pauseMenuSource.Width * pausePanelScale) / 2, window.Center.Y - (pauseMenuSource.Height * pausePanelScale) / 2, pauseMenuSource.Width * pausePanelScale, pauseMenuSource.Height * pausePanelScale);
                     }
 
+                    // draw panel without tint
+
                     _spriteBatch.Draw(menuTexture, pausePanelDest, pauseMenuSource, Color.White);
 
                     // draw pause menu buttons on top of the panel
+                    // ensure buttons draw without extra tint (Buttons.Draw uses Color.White internally)
                     uiButtons?.Draw(_spriteBatch, font);
+                    // close rect is interactive but not drawn (debug visuals removed)
 
-                    // draw debug/visibility rectangles for pause buttons (helps ensure they are positioned correctly)
-                    void DrawBtnDebug(Button b)
+                    // draw options overlay if opened while paused
+                    if (optionMenuOpen)
                     {
-                        if (b == null) return;
-                        // access Bounds via reflection-like public field
-                        try
-                        {
-                            var rect = b.Bounds;
-                            _spriteBatch.Draw(rectangleTexture, rect, Color.White * 0.35f);
-                        }
-                        catch { }
+                        int overlayWidth = 1120;
+                        int overlayHeight = 760;
+                        int overlayX = (window.Width - overlayWidth) / 2;
+                        int overlayY = 160;
+                        var overlay = new Rectangle(overlayX, overlayY, overlayWidth, overlayHeight);
+                        _spriteBatch.Draw(rectangleTexture, overlay, Color.Black * 0.75f);
+                        int titleOffset = 56;
+                        float lineSpacing = 64f;
+                        Color normal = Color.White;
+                        Color highlight = Color.Yellow;
+
+                        _spriteBatch.DrawString(font, "Options", new Vector2(overlay.X + 32, overlay.Y + titleOffset), Color.White);
+
+                        float y = overlay.Y + titleOffset + lineSpacing;
+
+                        var musicCol = optionSelectedIndex == 0 ? highlight : normal;
+                        var sfxCol = optionSelectedIndex == 1 ? highlight : normal;
+                        var fullCol = optionSelectedIndex == 2 ? highlight : normal;
+
+                        y += lineSpacing;
+                        _spriteBatch.DrawString(font, $"Music Volume: {Math.Round(settings.MusicVolume * 100)}%", new Vector2(overlay.X + 60, y), musicCol);
+                        y += lineSpacing;
+                        _spriteBatch.DrawString(font, $"SFX Volume: {Math.Round(settings.SfxVolume * 100)}%", new Vector2(overlay.X + 60, y), sfxCol);
+                        y += lineSpacing;
+                        _spriteBatch.DrawString(font, $"Fullscreen: {settings.Fullscreen}", new Vector2(overlay.X + 60, y), fullCol);
+                        y += lineSpacing;
+                        _spriteBatch.DrawString(font, "Use Up/Down to select", new Vector2(overlay.X + 60, y), Color.LightGray);
+                        y += lineSpacing;
+                        _spriteBatch.DrawString(font, "Left/Right to change values", new Vector2(overlay.X + 60, y), Color.LightGray);
+                        y += lineSpacing;
+                        _spriteBatch.DrawString(font, "Enter to toggle fullscreen", new Vector2(overlay.X + 60, y), Color.LightGray);
                     }
 
-                    DrawBtnDebug(pauseResumeBtn);
-                    DrawBtnDebug(pauseOptionsBtn);
-                    DrawBtnDebug(pauseShopBtn);
-                    DrawBtnDebug(pauseInventoryBtn);
-                    DrawBtnDebug(pauseCraftBtn);
-                    DrawBtnDebug(pauseQuitBtn);
-
-                    // draw title on panel
-                    var title = "Paused";
-                    var titlePos = new Vector2(window.Center.X, pausePanelDest.Y + 36);
-                    var titleOrigin = font.MeasureString(title) / 2f;
-                    _spriteBatch.DrawString(font, title, titlePos, Color.Yellow, 0f, titleOrigin, 1.2f, SpriteEffects.None, 0f);
                 }
 
                 _spriteBatch.End();
