@@ -48,6 +48,7 @@ namespace spritesheet
         GraphicsDeviceManager _graphics;
         SpriteBatch _spriteBatch;
 
+        Texture2D coinTexture;
         Texture2D shopTexture;
         Texture2D menuTexture;
         Texture2D equipmentTexture;
@@ -183,6 +184,8 @@ namespace spritesheet
         int pausePanelScale = 4;
         // index of currently-selected option in the overlay (0=music,1=sfx,2=fullscreen)
         int optionSelectedIndex = 0;
+        bool optionUpHeld = false;
+        bool optionDownHeld = false;
         string settingsFilePath;
         Settings settings;
 
@@ -455,6 +458,7 @@ namespace spritesheet
                 Content.Load<Texture2D>("Slime1_Hurt")
             };
 
+            coinTexture = Content.Load<Texture2D>("Coin");
             shopTexture = Content.Load<Texture2D>("Shop");
             equipmentTexture = Content.Load<Texture2D>("Equipment");
             menuTexture = Content.Load<Texture2D>("Main_menu");
@@ -748,19 +752,93 @@ namespace spritesheet
                 // toggle pause with Escape
                 if (keyboardState.IsKeyDown(Keys.Escape) && !previousKeyboardState.IsKeyDown(Keys.Escape))
                 {
-                    gamePaused = !gamePaused;
-                    // enable/disable pause buttons
-                    if (pauseResumeBtn != null) pauseResumeBtn.Enabled = gamePaused;
-                    if (pauseOptionsBtn != null) pauseOptionsBtn.Enabled = gamePaused;
-                    if (pauseQuitBtn != null) pauseQuitBtn.Enabled = gamePaused;
-                    if (pauseShopBtn != null) pauseShopBtn.Enabled = gamePaused;
-                    if (pauseInventoryBtn != null) pauseInventoryBtn.Enabled = gamePaused;
-                    if (pauseCraftBtn != null) pauseCraftBtn.Enabled = gamePaused;
-                    // recompute close rect when toggling so it matches panel position
-                    if (pausePanelDest != Rectangle.Empty)
+                    if (optionMenuOpen)
                     {
-                        pauseCloseRect = new Rectangle(pausePanelDest.Right - pauseCloseSize - pauseCloseMarginX, pausePanelDest.Y + pauseCloseMarginY, pauseCloseSize, pauseCloseSize);
+                        // when options overlay is open, close it instead of toggling pause
+                        optionMenuOpen = false;
                     }
+                    else
+                    {
+                        gamePaused = !gamePaused;
+                        // enable/disable pause buttons
+                        if (pauseResumeBtn != null) pauseResumeBtn.Enabled = gamePaused;
+                        if (pauseOptionsBtn != null) pauseOptionsBtn.Enabled = gamePaused;
+                        if (pauseQuitBtn != null) pauseQuitBtn.Enabled = gamePaused;
+                        if (pauseShopBtn != null) pauseShopBtn.Enabled = gamePaused;
+                        if (pauseInventoryBtn != null) pauseInventoryBtn.Enabled = gamePaused;
+                        if (pauseCraftBtn != null) pauseCraftBtn.Enabled = gamePaused;
+                        // recompute close rect when toggling so it matches panel position
+                        if (pausePanelDest != Rectangle.Empty)
+                        {
+                            pauseCloseRect = new Rectangle(pausePanelDest.Right - pauseCloseSize - pauseCloseMarginX, pausePanelDest.Y + pauseCloseMarginY, pauseCloseSize, pauseCloseSize);
+                        }
+                    }
+                }
+
+                // handle options input while paused (so arrow keys work)
+                if (gamePaused && optionMenuOpen)
+                {
+                    int prevIndex = optionSelectedIndex;
+                    bool changed = false;
+
+                    // handle Up/Down with edge detection so index changes on key press
+                    if (keyboardState.IsKeyDown(Keys.Up) && !optionUpHeld)
+                    {
+                        optionSelectedIndex = Math.Max(0, optionSelectedIndex - 1);
+                        optionUpHeld = true;
+                        changed = true;
+                    }
+                    if (!keyboardState.IsKeyDown(Keys.Up)) optionUpHeld = false;
+
+                    if (keyboardState.IsKeyDown(Keys.Down) && !optionDownHeld)
+                    {
+                        optionSelectedIndex = Math.Min(2, optionSelectedIndex + 1);
+                        optionDownHeld = true;
+                        changed = true;
+                    }
+                    if (!keyboardState.IsKeyDown(Keys.Down)) optionDownHeld = false;
+
+                    float volStep = 0.01f;
+                    if (keyboardState.IsKeyDown(Keys.Left) && !previousKeyboardState.IsKeyDown(Keys.Left))
+                    {
+                        if (optionSelectedIndex == 0)
+                        {
+                            settings.MusicVolume = Math.Clamp(settings.MusicVolume - volStep, 0f, 1f);
+                            MediaPlayer.Volume = settings.MusicVolume;
+                            changed = true;
+                        }
+                        else if (optionSelectedIndex == 1)
+                        {
+                            settings.SfxVolume = Math.Clamp(settings.SfxVolume - volStep, 0f, 1f);
+                            ApplySfxVolume();
+                            changed = true;
+                        }
+                    }
+                    if (keyboardState.IsKeyDown(Keys.Right) && !previousKeyboardState.IsKeyDown(Keys.Right))
+                    {
+                        if (optionSelectedIndex == 0)
+                        {
+                            settings.MusicVolume = Math.Clamp(settings.MusicVolume + volStep, 0f, 1f);
+                            MediaPlayer.Volume = settings.MusicVolume;
+                            changed = true;
+                        }
+                        else if (optionSelectedIndex == 1)
+                        {
+                            settings.SfxVolume = Math.Clamp(settings.SfxVolume + volStep, 0f, 1f);
+                            ApplySfxVolume();
+                            changed = true;
+                        }
+                    }
+
+                    if (keyboardState.IsKeyDown(Keys.Enter) && !previousKeyboardState.IsKeyDown(Keys.Enter) && optionSelectedIndex == 2)
+                    {
+                        _graphics.IsFullScreen = !_graphics.IsFullScreen;
+                        _graphics.ApplyChanges();
+                        settings.Fullscreen = _graphics.IsFullScreen;
+                        changed = true;
+                    }
+
+                    if (changed) SaveSettings();
                 }
 
                 if (!gamePaused)
@@ -801,6 +879,72 @@ namespace spritesheet
                         isDragging = true;
                         barrierStart = mouseState.Position;
                     }
+
+                // handle options input while paused (so arrow keys work)
+                if (gamePaused && optionMenuOpen)
+                {
+                    int prevIndex = optionSelectedIndex;
+                    bool changed = false;
+
+                    // handle Up/Down with edge detection so index changes on key press
+                    if (keyboardState.IsKeyDown(Keys.Up) && !optionUpHeld)
+                    {
+                        optionSelectedIndex = Math.Max(0, optionSelectedIndex - 1);
+                        optionUpHeld = true;
+                        changed = true;
+                    }
+                    if (!keyboardState.IsKeyDown(Keys.Up)) optionUpHeld = false;
+
+                    if (keyboardState.IsKeyDown(Keys.Down) && !optionDownHeld)
+                    {
+                        optionSelectedIndex = Math.Min(2, optionSelectedIndex + 1);
+                        optionDownHeld = true;
+                        changed = true;
+                    }
+                    if (!keyboardState.IsKeyDown(Keys.Down)) optionDownHeld = false;
+
+                    float volStep = 0.01f;
+                    if (keyboardState.IsKeyDown(Keys.Left) && !previousKeyboardState.IsKeyDown(Keys.Left))
+                    {
+                        if (optionSelectedIndex == 0)
+                        {
+                            settings.MusicVolume = Math.Clamp(settings.MusicVolume - volStep, 0f, 1f);
+                            MediaPlayer.Volume = settings.MusicVolume;
+                            changed = true;
+                        }
+                        else if (optionSelectedIndex == 1)
+                        {
+                            settings.SfxVolume = Math.Clamp(settings.SfxVolume - volStep, 0f, 1f);
+                            ApplySfxVolume();
+                            changed = true;
+                        }
+                    }
+                    if (keyboardState.IsKeyDown(Keys.Right) && !previousKeyboardState.IsKeyDown(Keys.Right))
+                    {
+                        if (optionSelectedIndex == 0)
+                        {
+                            settings.MusicVolume = Math.Clamp(settings.MusicVolume + volStep, 0f, 1f);
+                            MediaPlayer.Volume = settings.MusicVolume;
+                            changed = true;
+                        }
+                        else if (optionSelectedIndex == 1)
+                        {
+                            settings.SfxVolume = Math.Clamp(settings.SfxVolume + volStep, 0f, 1f);
+                            ApplySfxVolume();
+                            changed = true;
+                        }
+                    }
+
+                    if (keyboardState.IsKeyDown(Keys.Enter) && !previousKeyboardState.IsKeyDown(Keys.Enter) && optionSelectedIndex == 2)
+                    {
+                        _graphics.IsFullScreen = !_graphics.IsFullScreen;
+                        _graphics.ApplyChanges();
+                        settings.Fullscreen = _graphics.IsFullScreen;
+                        changed = true;
+                    }
+
+                    if (changed) SaveSettings();
+                }
                     else if (mouseState.LeftButton == ButtonState.Released && isDragging)
                     {
                         isDragging = false;
