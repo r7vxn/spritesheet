@@ -10,6 +10,8 @@ namespace spritesheet
 {
     internal class SlimeAnimationClass
     {
+        // fired once when this slime dies; provides the world position of the slime
+        public event Action<Vector2>? OnDeath;
         private Rectangle slimeRangeRect;
         private Vector2 slimeLocation;
         private Vector2 slimeDirection;
@@ -118,6 +120,8 @@ namespace spritesheet
                 slimeDied = true;
                 slimeDeathStarted = true;
                 slimeState = SlimeAnimation.SlimeDeath;
+                // notify listeners that this slime died (fired once) and pass position
+                try { OnDeath?.Invoke(slimeLocation); } catch { }
             }
             if (slimeState == SlimeAnimation.SlimeDeath && slimeReset)
             {

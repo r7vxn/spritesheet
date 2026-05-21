@@ -159,6 +159,18 @@ namespace spritesheet
         SlimeSoundEffect slimeSoundEffect;
         SlimeAnimationClass slimeAnimationClass;
         List<SlimeAnimationClass> slimes = new List<SlimeAnimationClass>();
+        // global coin currency
+        Coin coin = new Coin(0);
+
+        // active coin pickups in the world
+        private class CoinPickup
+        {
+            public Vector2 Position;
+            public Rectangle Bounds;
+            public int Value;
+            public bool Collected = false;
+        }
+        List<CoinPickup> coinPickups = new List<CoinPickup>();
         List<IntroSlime> introSlimes = new List<IntroSlime>();
         bool optionMenuOpen = false;
         bool gamePaused = false;
@@ -509,6 +521,20 @@ namespace spritesheet
             {
                 var s = new SlimeAnimationClass();
                 s.Initialize(pos);
+                // When this slime dies, spawn a world coin pickup at the slime position
+                s.OnDeath += (slimePos) =>
+                {
+                    var cp = new CoinPickup()
+                    {
+                        Position = slimePos,
+                        Value = 1,
+                        Collected = false,
+                    };
+                    // set bounds now (larger pickup: 48x48 centered on position)
+                    int size = 48;
+                    cp.Bounds = new Rectangle((int)slimePos.X - size / 2, (int)slimePos.Y - size / 2, size, size);
+                    coinPickups.Add(cp);
+                };
                 slimes.Add(s);
             }
 
@@ -972,6 +998,22 @@ namespace spritesheet
                 foreach (var s in slimes)
                     s.update(gameTime, playerCollisionRect, playerLocation, slimeFramesPerDirection);
 
+                // update coin pickups: check player collision for pickup
+                for (int i = coinPickups.Count - 1; i >= 0; i--)
+                {
+                    var cp = coinPickups[i];
+                    if (cp.Collected) continue;
+                    // update bounds in case world moves (they are static for now)
+                    int size = cp.Bounds.Width;
+                    cp.Bounds = new Rectangle((int)cp.Position.X - size / 2, (int)cp.Position.Y - size / 2, size, size);
+
+                    if (cp.Bounds.Intersects(playerCollisionRect))
+                    {
+                        coin.Add(cp.Value);
+                        coinPickups.RemoveAt(i);
+                    }
+                }
+
                 var primarySlime = slimes.FirstOrDefault(s => !s.IsDead) ?? (slimes.Count > 0 ? slimes[0] : null);
                 if (primarySlime != null)
                 {
@@ -1328,6 +1370,21 @@ namespace spritesheet
                     Color.White
                 );
 
+                // draw coin count slightly lower next to the character panel
+                if (coinTexture != null)
+                {
+                    int iconSize = 36;
+                    // move the icon down by 14 pixels
+                    var iconDest = new Rectangle(panelDest.Right + 12, panelDest.Y + 8 + 14, iconSize, iconSize);
+                    _spriteBatch.Draw(coinTexture, iconDest, Color.White);
+
+                    // draw the numeric amount a little lower and vertically centered with icon
+                    string coinText = coin.Amount.ToString();
+                    var textSize = font.MeasureString(coinText);
+                    var textPos = new Vector2(iconDest.Right + 8, iconDest.Y + (iconSize / 2f) - (textSize.Y / 2f) + 2);
+                    _spriteBatch.DrawString(font, coinText, textPos, Color.Yellow);
+                }
+
                 foreach (var s in slimes)
                 {
                     if (s.DeathDraw) continue;
@@ -1347,6 +1404,17 @@ namespace spritesheet
                         slimeColumns,
                         slimeRows
                     );
+                }
+
+                // draw coin pickups in the world
+                foreach (var cp in coinPickups)
+                {
+                    if (cp.Collected) continue;
+                    var dest = cp.Bounds;
+                    // simple bobbing effect
+                    float bob = (float)(Math.Sin(gameTime.TotalGameTime.TotalSeconds * 4.0) * 4.0);
+                    dest.Y += (int)bob;
+                    _spriteBatch.Draw(coinTexture, dest, Color.White);
                 }
 
                 // draw pause menu overlay when paused
