@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using spritesheet.Skills;
 
 namespace spritesheet
 {
@@ -145,6 +146,10 @@ namespace spritesheet
         float endDelayTimer = 2f;
         bool slimeAttackStarted = false;
         bool slimeDeathDraw = false;
+
+        // skills and controller
+        BasicAttackSkill basicAttackSkill;
+        SpecialAttackSkill specialAttackSkill;
 
         int resChange = 2;
 
@@ -369,6 +374,21 @@ namespace spritesheet
                 { SlimeAnimation.SlimeDeath, 4 },
                 { SlimeAnimation.SlimeHurt, 4 },
             };
+
+            // instantiate skills (created after default fields initialized)
+            // Note: specialAttackSkill is created first so basicAttackSkill's canPerform closure can read it
+            specialAttackSkill = new SpecialAttackSkill(
+                onStart: () => { state = Animation.Attack; frame = 0; time = 0f; },
+                onPhaseUpdate: (progress) => { /* optional phase visuals */ },
+                onEnd: () => { state = Animation.Idle; },
+                canPerform: () => !playerHurt
+            );
+
+            basicAttackSkill = new BasicAttackSkill(
+                onPerformHit: () => PerformBasicHit(),
+                onStart: () => { state = Animation.Attack; frame = 0; time = 0f; },
+                canPerform: () => !playerHurt && !specialAttackSkill.IsActive
+            );
 
         }
 
@@ -1082,18 +1102,12 @@ namespace spritesheet
                     }
                 }
 
-                if (keyboardState.IsKeyDown(Keys.Space))
-                {
-                    state = Animation.Attack;
-                    attack = true;
+                // delegate attack input to skills
+                basicAttackSkill.HandleInput(keyboardState, previousKeyboardState);
+                specialAttackSkill.HandleInput(keyboardState, previousKeyboardState);
 
-                    if (directionRow == upRow) attackCollisionRect = new Rectangle(playerDrawRect.X + 35, playerDrawRect.Y + 95, 80, 40);
-                    else if (directionRow == leftRow) attackCollisionRect = new Rectangle(playerDrawRect.X + 20, playerDrawRect.Y + 35, 40, 80);
-                    else if (directionRow == rightRow) attackCollisionRect = new Rectangle(playerDrawRect.X + 90, playerDrawRect.Y + 35, 40, 80);
-                    else if (directionRow == downRow) attackCollisionRect = new Rectangle(playerDrawRect.X + 35, playerDrawRect.Y + 20, 80, 40);
-                }
-                else if (keyboardState.IsKeyDown(Keys.R)) state = Animation.Death;
-                else if (keyboardState.IsKeyDown(Keys.Q)) state = Animation.Hurt;
+                if (keyboardState.IsKeyDown(Keys.R)) state = Animation.Death;
+
 
                 if (playerDirection.X < 0) directionRow = leftRow;
                 else if (playerDirection.X > 0) directionRow = rightRow;
@@ -1133,22 +1147,18 @@ namespace spritesheet
                         if (frame >= frames) frame = 0;
                     }
                 }
-                if (state == Animation.Attack)
+                // apply basic attack hit when skill triggers (handled via PerformBasicHit)
+                basicAttackSkill.Update(gameTime);
+                specialAttackSkill.Update(gameTime);
+
+                // while special attack is active, disable movement
+                if (specialAttackSkill.IsActive)
                 {
-                    if (frame == 4 && !attacked)
-                    {
-                        foreach (var s in slimes)
-                        {
-                            if (!s.IsDead && s.CurrentCollisionRect.Intersects(attackCollisionRect))
-                            {
-                                s.ApplyDamage(playerDamage, playerLocation);
-                                attacked = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (frame == 0) attacked = false;
+                    // prevent movement during special
+                    playerDirection = Vector2.Zero;
+                    state = Animation.Attack;
                 }
+
 
 
                 if (playerHealth <= 0)
@@ -1156,6 +1166,8 @@ namespace spritesheet
                     playerDied = true;
                     screen = Screen.end;
                 }
+
+                // other gameplay logic continues...
 
                 if (!playerInvincible)
                 {
