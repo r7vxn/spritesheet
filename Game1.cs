@@ -54,6 +54,7 @@ namespace spritesheet
         Texture2D menuTexture;
         Texture2D equipmentTexture;
         Texture2D customButtons;
+        Texture2D attackSwingTexture;
         Rectangle window = new Rectangle(0, 0, 1920, 1080);
         Texture2D rectangleTexture;
         Texture2D characterPanelTexture;
@@ -179,6 +180,7 @@ namespace spritesheet
         List<IntroSlime> introSlimes = new List<IntroSlime>();
         bool optionMenuOpen = false;
         bool gamePaused = false;
+        bool isSwinging = false;
         // pause menu buttons
         Button pauseResumeBtn;
         Button pauseOptionsBtn;
@@ -385,10 +387,29 @@ namespace spritesheet
             );
 
             basicAttackSkill = new BasicAttackSkill(
-                onPerformHit: () => PerformBasicHit(),
+                onPerformHit: () => {
+                    // inline previous hit logic so callback compiles in this class
+                    if (directionRow == upRow) attackCollisionRect = new Rectangle(playerDrawRect.X + 35, playerDrawRect.Y + 95, 80, 40);
+                    else if (directionRow == leftRow) attackCollisionRect = new Rectangle(playerDrawRect.X + 20, playerDrawRect.Y + 35, 40, 80);
+                    else if (directionRow == rightRow) attackCollisionRect = new Rectangle(playerDrawRect.X + 90, playerDrawRect.Y + 35, 40, 80);
+                    else if (directionRow == downRow) attackCollisionRect = new Rectangle(playerDrawRect.X + 35, playerDrawRect.Y + 20, 80, 40);
+
+                    foreach (var s in slimes)
+                    {
+                        if (!s.IsDead && s.CurrentCollisionRect.Intersects(attackCollisionRect))
+                        {
+                            s.ApplyDamage(playerDamage, playerLocation);
+                            break;
+                        }
+                    }
+                },
                 onStart: () => { state = Animation.Attack; frame = 0; time = 0f; },
                 canPerform: () => !playerHurt && !specialAttackSkill.IsActive
             );
+
+            // ensure skill fields are not null during gameplay
+            if (specialAttackSkill == null) specialAttackSkill = new SpecialAttackSkill(() => { }, (p) => { }, () => { }, () => false);
+            if (basicAttackSkill == null) basicAttackSkill = new BasicAttackSkill(() => { }, () => { }, () => false);
 
         }
 
@@ -498,6 +519,7 @@ namespace spritesheet
             customButtons = Content.Load<Texture2D>("Custom Buttons");
             rectangleTexture = Content.Load<Texture2D>("rectangle");
             characterPanelTexture = Content.Load<Texture2D>("character_panel");
+            attackSwingTexture = Content.Load<Texture2D>("Swordsman_lvl1_Run_Attack_swing");
             backgroundTexture = Content.Load<Texture2D>("forest background");
             introTexture = Content.Load<Texture2D>("forest intro");
             font = Content.Load<SpriteFont>("Font");
@@ -1144,7 +1166,16 @@ namespace spritesheet
                     else
                     {
                         frame++;
-                        if (frame >= frames) frame = 0;
+                        if (frame >= frames)
+                        {
+                            // if we just completed an attack animation, signal the basic skill to end
+                            if (state == Animation.Attack && basicAttackSkill != null && basicAttackSkill.IsAvailable == false)
+                            {
+                                // call End() so the skill becomes inactive
+                                basicAttackSkill.End();
+                            }
+                            frame = 0;
+                        }
                     }
                 }
                 // apply basic attack hit when skill triggers (handled via PerformBasicHit)
@@ -1157,6 +1188,19 @@ namespace spritesheet
                     // prevent movement during special
                     playerDirection = Vector2.Zero;
                     state = Animation.Attack;
+                }
+
+                // show swing visual for basic attack. Keep the overlay visible while the skill is active
+                // or while we are in the attack animation and the basic attack cooldown is running
+                if (basicAttackSkill != null && (basicAttackSkill.IsActive || (state == Animation.Attack && basicAttackSkill.CooldownTimer > 0f)))
+                {
+                    // ensure we're using the attack animation
+                    state = Animation.Attack;
+                    isSwinging = true;
+                }
+                else
+                {
+                    isSwinging = false;
                 }
 
 
@@ -1316,6 +1360,19 @@ namespace spritesheet
                     currentRows
                 );
 
+                // draw swing overlay when basic attack is active
+                if (isSwinging && attackSwingTexture != null)
+                {
+                    // position overlay relative to playerDrawRect and facing
+                    Rectangle swingDest = playerDrawRect;
+                    if (directionRow == leftRow) swingDest = new Rectangle(playerDrawRect.X - 40, playerDrawRect.Y + 20, 80, 80);
+                    else if (directionRow == rightRow) swingDest = new Rectangle(playerDrawRect.X + playerDrawRect.Width - 40, playerDrawRect.Y + 20, 80, 80);
+                    else if (directionRow == upRow) swingDest = new Rectangle(playerDrawRect.X + 20, playerDrawRect.Y - 20, 80, 80);
+                    else if (directionRow == downRow) swingDest = new Rectangle(playerDrawRect.X + 20, playerDrawRect.Y + playerDrawRect.Height - 40, 80, 80);
+
+                    _spriteBatch.Draw(attackSwingTexture, swingDest, Color.White);
+                }
+
                 var panelSource = hudPanelSourceRect;
                 int panelScale = 5;
                 int padding = 10;
@@ -1427,6 +1484,35 @@ namespace spritesheet
                     float bob = (float)(Math.Sin(gameTime.TotalGameTime.TotalSeconds * 4.0) * 4.0);
                     dest.Y += (int)bob;
                     _spriteBatch.Draw(coinTexture, dest, Color.White);
+                }
+
+                // Draw basic attack cooldown on HUD
+                if (basicAttackSkill != null)
+                {
+                    float cd = basicAttackSkill.CooldownTimer;
+                    float max = basicAttackSkill.Cooldown;
+                    float pct = Math.Clamp(1f - (cd / Math.Max(0.0001f, max)), 0f, 1f);
+                    // small cooldown bar under HUD panel
+                    int cdWidth = 100;
+                    int cdHeight = 8;
+                    var cdRect = new Rectangle(panelDest.X + 30, panelDest.Bottom + 8, (int)(cdWidth * pct), cdHeight);
+                    _spriteBatch.Draw(rectangleTexture, new Rectangle(panelDest.X + 30, panelDest.Bottom + 8, cdWidth, cdHeight), Color.Gray * 0.6f);
+                    _spriteBatch.Draw(rectangleTexture, cdRect, Color.Cyan);
+                    _spriteBatch.DrawString(font, $"Atk CD: {Math.Ceiling(cd * 100) / 100}", new Vector2(panelDest.X + 30 + cdWidth + 8, panelDest.Bottom + 2), Color.White);
+                }
+
+                // Draw special attack cooldown on HUD
+                if (specialAttackSkill != null)
+                {
+                    float cd = specialAttackSkill.CooldownTimer;
+                    float max = specialAttackSkill.Cooldown;
+                    float pct = Math.Clamp(1f - (cd / Math.Max(0.0001f, max)), 0f, 1f);
+                    int cdWidth = 100;
+                    int cdHeight = 8;
+                    var cdRect = new Rectangle(panelDest.X + 30, panelDest.Bottom + 20, (int)(cdWidth * pct), cdHeight);
+                    _spriteBatch.Draw(rectangleTexture, new Rectangle(panelDest.X + 30, panelDest.Bottom + 20, cdWidth, cdHeight), Color.Gray * 0.6f);
+                    _spriteBatch.Draw(rectangleTexture, cdRect, Color.Orange);
+                    _spriteBatch.DrawString(font, $"Spc CD: {Math.Ceiling(cd * 100) / 100}", new Vector2(panelDest.X + 30 + cdWidth + 8, panelDest.Bottom + 14), Color.White);
                 }
 
                 // draw pause menu overlay when paused

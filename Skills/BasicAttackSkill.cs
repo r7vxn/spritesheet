@@ -15,6 +15,7 @@ namespace spritesheet.Skills
         private bool triggered = false;
         private float attackDuration = 0.5f; // seconds (animation length)
         private float attackTimer = 0f;
+        private bool hitPerformed = false; // ensure hit callback runs once per attack
 
         public BasicAttackSkill(Action onPerformHit, Action onStart, Func<bool> canPerform, float cooldown = 0.35f) : base("BasicAttack", cooldown)
         {
@@ -22,6 +23,8 @@ namespace spritesheet.Skills
             OnStart = onStart;
             CanPerform = canPerform;
         }
+
+        public bool IsActive => triggered;
 
         public override void HandleInput(KeyboardState current, KeyboardState previous)
         {
@@ -31,8 +34,11 @@ namespace spritesheet.Skills
                 if (IsAvailable && CanPerform())
                 {
                     triggered = true;
-                    attackTimer = attackDuration;
+                    // Start cooldown immediately but keep triggered true until animation ends
                     CooldownTimer = Cooldown;
+                    // reset internal timers/flags for this activation
+                    attackTimer = attackDuration;
+                    hitPerformed = false;
                     OnStart?.Invoke();
                 }
             }
@@ -41,20 +47,31 @@ namespace spritesheet.Skills
         public override void Update(GameTime gameTime)
         {
             base.Update(gameTime);
-            if (triggered)
-            {
-                attackTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
-                // call hit callback at mid-point of attack
-                if (attackTimer <= attackDuration / 2f && attackTimer + (float)gameTime.ElapsedGameTime.TotalSeconds > attackDuration / 2f)
-                {
-                    OnPerformHit?.Invoke();
-                }
+            // drive attack timing and trigger the hit callback at the midpoint of the animation
+            if (!triggered) return;
 
-                if (attackTimer <= 0f)
-                {
-                    triggered = false;
-                }
+            float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            attackTimer -= dt;
+
+            // perform the hit once at ~50% of the attackDuration
+            if (!hitPerformed && attackTimer <= attackDuration * 0.5f)
+            {
+                hitPerformed = true;
+                OnPerformHit?.Invoke();
             }
+
+            // if timer expired, end the skill (animation may also call End externally)
+            if (attackTimer <= 0f)
+            {
+                End();
+            }
+        }
+
+        // Called externally when the animation finished to end the attack activity
+        public void End()
+        {
+            triggered = false;
+            attackTimer = 0f;
         }
     }
 }
