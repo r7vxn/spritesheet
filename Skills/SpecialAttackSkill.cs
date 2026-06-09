@@ -13,17 +13,18 @@ namespace spritesheet.Skills
         private readonly Func<bool> CanPerform;
 
         private bool active = false;
-        private float duration = 1.2f; // total duration of special attack
+        private float duration = 4f; // total duration of special attack (longer so the effect loops more smoothly)
         private float timer = 0f;
 
         public bool IsActive => active;
 
-        public SpecialAttackSkill(Action onStart, Action<float> onPhaseUpdate, Action onEnd, Func<bool> canPerform, float cooldown = 1.5f) : base("SpecialAttack", cooldown)
+        public SpecialAttackSkill(Action onStart, Action<float> onPhaseUpdate, Action onEnd, Func<bool> canPerform, float cooldown = 1.5f, float duration = 4f) : base("SpecialAttack", cooldown)
         {
             OnStart = onStart;
             OnPhaseUpdate = onPhaseUpdate;
             OnEnd = onEnd;
             CanPerform = canPerform;
+            this.duration = duration;
         }
 
         public override void HandleInput(KeyboardState current, KeyboardState previous)
@@ -34,6 +35,8 @@ namespace spritesheet.Skills
                 {
                     active = true;
                     timer = duration;
+                    // ensure the visual phase is shown immediately even if the player is standing still
+                    OnPhaseUpdate?.Invoke(0f);
                     CooldownTimer = Cooldown;
                     OnStart?.Invoke();
                 }
@@ -52,6 +55,9 @@ namespace spritesheet.Skills
 
             if (timer <= 0f)
             {
+                // clamp and ensure final phase is shown before ending
+                timer = 0f;
+                OnPhaseUpdate?.Invoke(1f);
                 active = false;
                 OnEnd?.Invoke();
             }

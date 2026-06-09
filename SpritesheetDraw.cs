@@ -27,10 +27,32 @@ namespace spritesheet
             for (int i = 0; i < currentSpritesheet.Count; i++)
             {
                 Texture2D layer = currentSpritesheet[i];
-                int width = layer.Width / columns;
-                int height = layer.Height / rows;
+                int frameWidth = layer.Width;
+                int frameHeight = layer.Height;
 
-                Rectangle sourceRect = new Rectangle(frame * width, directionRow * height, width, height);
+                if (columns > 0)
+                {
+                    int candidate = layer.Width / columns;
+                    if (candidate > 0) frameWidth = candidate;
+                }
+                if (rows > 0)
+                {
+                    int candidate = layer.Height / rows;
+                    if (candidate > 0) frameHeight = candidate;
+                }
+
+                if (frameWidth > layer.Width) frameWidth = layer.Width;
+                if (frameHeight > layer.Height) frameHeight = layer.Height;
+
+                int srcX = frame * frameWidth;
+                int srcY = directionRow * frameHeight;
+
+                if (srcX < 0) srcX = 0;
+                if (srcY < 0) srcY = 0;
+                if (srcX + frameWidth > layer.Width) srcX = Math.Max(0, layer.Width - frameWidth);
+                if (srcY + frameHeight > layer.Height) srcY = Math.Max(0, layer.Height - frameHeight);
+
+                Rectangle sourceRect = new Rectangle(srcX, srcY, frameWidth, frameHeight);
                 spriteBatch.Draw(layer, rectangle, sourceRect, Color.White);
             }
         }

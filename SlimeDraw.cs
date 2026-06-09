@@ -25,10 +25,32 @@ namespace spritesheet
             for (int i = 0; i < slimeCurrentSpritesheet.Count; i++)
             {
                 Texture2D slimelayer = slimeCurrentSpritesheet[i];
-                int slimewidth = slimelayer.Width / slimeColumns;
-                int slimeheight = slimelayer.Height / slimeRows;
+                int frameWidth = slimelayer.Width;
+                int frameHeight = slimelayer.Height;
 
-                Rectangle slimesourceRect = new Rectangle(slimeFrame * slimewidth, slimedirectionRow * slimeheight, slimewidth, slimeheight);
+                if (slimeColumns > 0)
+                {
+                    int candidate = slimelayer.Width / slimeColumns;
+                    if (candidate > 0) frameWidth = candidate;
+                }
+                if (slimeRows > 0)
+                {
+                    int candidate = slimelayer.Height / slimeRows;
+                    if (candidate > 0) frameHeight = candidate;
+                }
+
+                if (frameWidth > slimelayer.Width) frameWidth = slimelayer.Width;
+                if (frameHeight > slimelayer.Height) frameHeight = slimelayer.Height;
+
+                int srcX = slimeFrame * frameWidth;
+                int srcY = slimedirectionRow * frameHeight;
+
+                if (srcX < 0) srcX = 0;
+                if (srcY < 0) srcY = 0;
+                if (srcX + frameWidth > slimelayer.Width) srcX = Math.Max(0, slimelayer.Width - frameWidth);
+                if (srcY + frameHeight > slimelayer.Height) srcY = Math.Max(0, slimelayer.Height - frameHeight);
+
+                Rectangle slimesourceRect = new Rectangle(srcX, srcY, frameWidth, frameHeight);
                 spriteBatch.Draw(slimelayer, slimeRectangle, slimesourceRect, Color.White);
             }
         }

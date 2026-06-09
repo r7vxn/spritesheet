@@ -377,18 +377,28 @@ namespace spritesheet
                 { SlimeAnimation.SlimeHurt, 4 },
             };
 
-            // instantiate skills (created after default fields initialized)
-            // Note: specialAttackSkill is created first so basicAttackSkill's canPerform closure can read it
+            // instantiate skills
             specialAttackSkill = new SpecialAttackSkill(
                 onStart: () => { state = Animation.Attack; frame = 0; time = 0f; },
-                onPhaseUpdate: (progress) => { /* optional phase visuals */ },
+                onPhaseUpdate: (progress) => {
+                    state = Animation.Attack;
+
+
+
+                    // ensure directionRow is used to pick correct frame count
+                    int attackFrames = framesPerDirection[Animation.Attack][directionRow];
+                    float p = Math.Clamp(progress, 0f, 1f);
+                    int newFrame = (int)(p * (attackFrames - 1));
+                    frame = Math.Clamp(newFrame, 0, Math.Max(0, attackFrames - 1));
+                    // reset timing so automatic advancement doesn't interfere
+                    time = 0f;
+                },
                 onEnd: () => { state = Animation.Idle; },
                 canPerform: () => !playerHurt
-            );
+            , cooldown: 1.5f, duration: 4f);
 
             basicAttackSkill = new BasicAttackSkill(
                 onPerformHit: () => {
-                    // inline previous hit logic so callback compiles in this class
                     if (directionRow == upRow) attackCollisionRect = new Rectangle(playerDrawRect.X + 35, playerDrawRect.Y + 95, 80, 40);
                     else if (directionRow == leftRow) attackCollisionRect = new Rectangle(playerDrawRect.X + 20, playerDrawRect.Y + 35, 40, 80);
                     else if (directionRow == rightRow) attackCollisionRect = new Rectangle(playerDrawRect.X + 90, playerDrawRect.Y + 35, 40, 80);
