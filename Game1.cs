@@ -49,6 +49,8 @@ namespace spritesheet
         GraphicsDeviceManager _graphics;
         SpriteBatch _spriteBatch;
 
+        Texture2D swordRingSwordSpriteTexture;
+        Texture2D swordRingIconTexture;
         Texture2D coinTexture;
         Texture2D shopTexture;
         Texture2D menuTexture;
@@ -148,9 +150,12 @@ namespace spritesheet
         bool slimeAttackStarted = false;
         bool slimeDeathDraw = false;
 
+
         // skills and controller
         BasicAttackSkill basicAttackSkill;
         SpecialAttackSkill specialAttackSkill;
+        SwordRing swordRingSkill; 
+
 
         int resChange = 2;
 
@@ -537,6 +542,9 @@ namespace spritesheet
             slimeJump = Content.Load<SoundEffect>("slime jump");
             slimeBeingSlashed = Content.Load<SoundEffect>("slime impact");
             slimeHittingGround = Content.Load<SoundEffect>("slime hit ground");
+            swordRingIconTexture = Content.Load<Texture2D>("Sword Ring Icon");
+            swordRingSwordSpriteTexture = Content.Load<Texture2D>("Sword Ring Sword Sprite");
+            swordRingSkill = new SwordRing(swordRingSwordSpriteTexture, swordRingIconTexture);
 
             try
             {
@@ -922,34 +930,43 @@ namespace spritesheet
                 if (!gamePaused)
                 {
 
-                //// toggle and handle barrier editor
-                //if (keyboardState.IsKeyDown(Keys.B) && !previousKeyboardState.IsKeyDown(Keys.B))
-                //{
-                //    barrierEditMode = !barrierEditMode;
-                //    // reset any in-progress drag when toggling
-                //    isDragging = false;
-                //    currentBarrier = Rectangle.Empty;
-                //    // save when disabling editor so edits persist immediately
-                //    if (!barrierEditMode)
-                //        SaveBarriers();
-                //}
+                    //// toggle and handle barrier editor
+                    //if (keyboardState.IsKeyDown(Keys.B) && !previousKeyboardState.IsKeyDown(Keys.B))
+                    //{
+                    //    barrierEditMode = !barrierEditMode;
+                    //    // reset any in-progress drag when toggling
+                    //    isDragging = false;
+                    //    currentBarrier = Rectangle.Empty;
+                    //    // save when disabling editor so edits persist immediately
+                    //    if (!barrierEditMode)
+                    //        SaveBarriers();
+                    //}
 
-                //// clear persisted custom barriers (press V once)
-                //if (keyboardState.IsKeyDown(Keys.V) && !previousKeyboardState.IsKeyDown(Keys.V))
-                //{
-                //    customBarriers.Clear();
-                //    try
-                //    {
-                //        if (File.Exists(barriersFilePath)) File.Delete(barriersFilePath);
-                //    }
-                //    catch
-                //    {
-                //        // ignore deletion errors
-                //    }
-                //}
+                    //// clear persisted custom barriers (press V once)
+                    //if (keyboardState.IsKeyDown(Keys.V) && !previousKeyboardState.IsKeyDown(Keys.V))
+                    //{
+                    //    customBarriers.Clear();
+                    //    try
+                    //    {
+                    //        if (File.Exists(barriersFilePath)) File.Delete(barriersFilePath);
+                    //    }
+                    //    catch
+                    //    {
+                    //        // ignore deletion errors
+                    //    }
+                    //}
+                    // delegate attack input to skills
+                    basicAttackSkill.HandleInput(keyboardState, previousKeyboardState);
+                    specialAttackSkill.HandleInput(keyboardState, previousKeyboardState);
 
+                    if (keyboardState.IsKeyDown(Keys.Z) && !previousKeyboardState.IsKeyDown(Keys.Z))
+                    {
+                        swordRingSkill.Activate();
+                    }
 
-                if (barrierEditMode)
+                    swordRingSkill.Update(gameTime, playerLocation, slimes);
+
+                    if (barrierEditMode)
                 {
                     mouseState = Mouse.GetState();
                     if (mouseState.LeftButton == ButtonState.Pressed && !isDragging)
@@ -1360,6 +1377,7 @@ namespace spritesheet
 
                 uiButtons?.Draw(_spriteBatch, font);
 
+
                 spritesheetManager.Draw(
                     _spriteBatch,
                     state,
@@ -1393,6 +1411,10 @@ namespace spritesheet
                     panelSource.Width * panelScale,
                     panelSource.Height * panelScale
                 );
+
+                swordRingSkill.DrawSkill(_spriteBatch, playerLocation);
+
+                swordRingSkill.DrawUI(_spriteBatch, font, new Vector2(panelDest.X + 30, panelDest.Bottom + 40));
 
                 _spriteBatch.Draw(characterPanelTexture, panelDest, panelSource, Color.White);
 
