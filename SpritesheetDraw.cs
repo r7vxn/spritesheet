@@ -21,7 +21,6 @@ namespace spritesheet
 
         public void Draw(SpriteBatch spriteBatch, Rectangle rectangle, int directionRow, Animation state, int frame, int columns, int rows)
         {
-
             List<Texture2D> currentSpritesheet = spritesheets[(int)state];
 
             for (int i = 0; i < currentSpritesheet.Count; i++)

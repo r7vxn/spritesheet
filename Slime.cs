@@ -2,7 +2,7 @@ using Microsoft.Xna.Framework;
 
 namespace spritesheet
 {
-    // Minimal Slime implementation to satisfy SwordRing usage during compilation/testing.
+    // Lightweight Slime placeholder used by game systems
     internal class Slime
     {
         public Rectangle Hitbox { get; set; }

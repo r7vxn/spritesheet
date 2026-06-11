@@ -10,8 +10,10 @@ namespace spritesheet
 {
     internal class SlimeAnimationClass
     {
-        // fired once when this slime dies; provides the world position of the slime
-        public event Action<Vector2>? OnDeath;
+        // Events
+        public event Action<Vector2>? OnDeath; // fired once when this slime dies
+
+        // Position / state
         private Rectangle slimeRangeRect;
         private Vector2 slimeLocation;
         private Vector2 slimeDirection;
@@ -20,11 +22,15 @@ namespace spritesheet
         private int slimeFrame;
         private float slimeTime, slimeFrameSpeed = 1f, slimeSpeed = 5f;
         private int slimeFrames;
+
+        // Flags
         private bool slimeReset = true;
         private bool slimeAttackState = false;
         private bool slimeFrameCheck = false;
         private bool slimeAttackCollision = false;
         private bool slimeAttacked = false;
+
+        // Health / death
         private int slimeHealth = 15;
         private int slimeDamage;
         private float slimeAttackTimer;
@@ -33,13 +39,15 @@ namespace spritesheet
         private float endDelayTimer = 2f;
         private bool slimeAttackStarted = false;
         private bool slimeDeathDraw = false;
-        // hurt / knockback state
+
+        // Hurt / knockback
         private bool slimeHurt = false;
         private float slimeHurtTimer = 0f;
         private float slimeHurtDuration = 0.4f;
         private Vector2 slimeKnockbackVelocity = Vector2.Zero;
         private float slimeKnockbackSpeed = 300f;
-        // internal rects for slime
+
+        // Internal rects
         private Rectangle slimeCollisionRect;
         private Rectangle slimeAttackRect;
         private Rectangle slimeDrawRect;
@@ -58,6 +66,7 @@ namespace spritesheet
         {
 
         }
+        // Initialization
         public void Initialize()
         {
             slimeRangeRect = new Rectangle(0, 0, 70, 80);
@@ -68,31 +77,29 @@ namespace spritesheet
             slimeDownRow = 0;
             slimeDirectionRow = slimeDownRow;
             slimeLocation = new Vector2(960, 540);
+
             // initialize rects
             slimeDrawRect = new Rectangle((int)slimeLocation.X - 55, (int)slimeLocation.Y - 50, 225, 225);
             slimeCollisionRect = new Rectangle(slimeDrawRect.X + 50, slimeDrawRect.Y + 50, 50, 50);
             slimeAttackRect = new Rectangle((int)slimeLocation.X, (int)slimeLocation.Y + 23, 45, 20);
-
         }
-        // Initialize slime with a specific start position
+        // Initialize with specific start position
         public void Initialize(Vector2 startPosition)
         {
             Initialize();
             slimeLocation = startPosition;
+
             // update rects to match the new position
             slimeDrawRect = new Rectangle((int)slimeLocation.X - 55, (int)slimeLocation.Y - 50, 225, 225);
             slimeCollisionRect = new Rectangle(slimeDrawRect.X + 50, slimeDrawRect.Y + 50, 50, 50);
             slimeAttackRect = new Rectangle((int)slimeLocation.X, (int)slimeLocation.Y + 23, 45, 20);
         }
 
-        // Allow external code (e.g. player) to apply damage to this slime
-        // Now accepts the source position so we can apply knockback away from the attacker
+        // Damage handling: subtract health, trigger hurt state and knockback
         public void ApplyDamage(int amount, Vector2 sourcePosition)
         {
-            // reduce health
             slimeHealth -= amount;
 
-            // start hurt animation and knockback
             slimeState = SlimeAnimation.SlimeHurt;
             slimeFrame = 0;
             slimeHurt = true;
@@ -112,9 +119,10 @@ namespace spritesheet
             slimeAttackStarted = false;
             slimeAttackCollision = false;
         }
+        // Per-frame update: movement, animation, attack logic
         public void update(GameTime gameTime, Rectangle playerCollisionRect, Vector2 playerLocation, Dictionary<SlimeAnimation, Dictionary<int, int>> slimeFramesPerDirection)
         {
-            // slime's dying process
+            // Death handling
             if (slimeHealth <= 0 && !slimeDeathStarted)
             {
                 slimeDied = true;
@@ -129,7 +137,6 @@ namespace spritesheet
                 slimeReset = false;
             }
 
-            //slime logic
             if (slimeDied)
             {
                 endDelayTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -137,18 +144,16 @@ namespace spritesheet
                     slimeDeathDraw = true;
             }
 
-
-            // Update rects based on current slimeLocation
+            // Update rects based on current position
             slimeDrawRect.X = (int)slimeLocation.X - 55;
             slimeDrawRect.Y = (int)slimeLocation.Y - 50;
 
             slimeCollisionRect.Location = new Point(slimeDrawRect.X + 50, slimeDrawRect.Y + 50);
             slimeAttackRect.Location = new Point((int)slimeLocation.X, (int)slimeLocation.Y + 23);
-            // after updating the slime's attack rect, use it as the effective
-            // detection area so that range == attack collision
+            // detection area (use attack rect for range checks)
             slimeRangeRect = slimeAttackRect;
 
-            // slime movement and hurt/knockback handling
+            // Movement & knockback
             float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
             if (slimeHurt && !slimeDeathStarted)
@@ -156,8 +161,7 @@ namespace spritesheet
                 // apply knockback while hurt
                 slimeHurtTimer -= dt;
                 slimeLocation += slimeKnockbackVelocity * dt;
-                // simple damping so knockback slows down
-                slimeKnockbackVelocity *= 0.4f;
+                slimeKnockbackVelocity *= 0.4f; // damping
 
                 if (slimeHurtTimer <= 0f)
                 {
@@ -168,7 +172,6 @@ namespace spritesheet
                 }
                 else
                 {
-                    // remain in hurt state
                     slimeState = SlimeAnimation.SlimeHurt;
                 }
             }

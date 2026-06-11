@@ -1151,12 +1151,9 @@ namespace spritesheet
                     }
                 }
 
-                // delegate attack input to skills
+                // attack
                 basicAttackSkill.HandleInput(keyboardState, previousKeyboardState);
                 specialAttackSkill.HandleInput(keyboardState, previousKeyboardState);
-
-                if (keyboardState.IsKeyDown(Keys.R)) state = Animation.Death;
-
 
                 if (playerDirection.X < 0) directionRow = leftRow;
                 else if (playerDirection.X > 0) directionRow = rightRow;
@@ -1519,33 +1516,33 @@ namespace spritesheet
                 }
 
                 // Draw basic attack cooldown on HUD
-                if (basicAttackSkill != null)
-                {
-                    float cd = basicAttackSkill.CooldownTimer;
-                    float max = basicAttackSkill.Cooldown;
-                    float pct = Math.Clamp(1f - (cd / Math.Max(0.0001f, max)), 0f, 1f);
-                    // small cooldown bar under HUD panel
-                    int cdWidth = 100;
-                    int cdHeight = 8;
-                    var cdRect = new Rectangle(panelDest.X + 30, panelDest.Bottom + 8, (int)(cdWidth * pct), cdHeight);
-                    _spriteBatch.Draw(rectangleTexture, new Rectangle(panelDest.X + 30, panelDest.Bottom + 8, cdWidth, cdHeight), Color.Gray * 0.6f);
-                    _spriteBatch.Draw(rectangleTexture, cdRect, Color.Cyan);
-                    _spriteBatch.DrawString(font, $"Atk CD: {Math.Ceiling(cd * 100) / 100}", new Vector2(panelDest.X + 30 + cdWidth + 8, panelDest.Bottom + 2), Color.White);
-                }
+                //if (basicAttackSkill != null)
+                //{
+                //    float cd = basicAttackSkill.CooldownTimer;
+                //    float max = basicAttackSkill.Cooldown;
+                //    float pct = Math.Clamp(1f - (cd / Math.Max(0.0001f, max)), 0f, 1f);
+                //    // small cooldown bar under HUD panel
+                //    int cdWidth = 100;
+                //    int cdHeight = 8;
+                //    var cdRect = new Rectangle(panelDest.X + 30, panelDest.Bottom + 8, (int)(cdWidth * pct), cdHeight);
+                //    _spriteBatch.Draw(rectangleTexture, new Rectangle(panelDest.X + 30, panelDest.Bottom + 8, cdWidth, cdHeight), Color.Gray * 0.6f);
+                //    _spriteBatch.Draw(rectangleTexture, cdRect, Color.Cyan);
+                //    _spriteBatch.DrawString(font, $"Atk CD: {Math.Ceiling(cd * 100) / 100}", new Vector2(panelDest.X + 30 + cdWidth + 8, panelDest.Bottom + 2), Color.White);
+                //}
 
                 // Draw special attack cooldown on HUD
-                if (specialAttackSkill != null)
-                {
-                    float cd = specialAttackSkill.CooldownTimer;
-                    float max = specialAttackSkill.Cooldown;
-                    float pct = Math.Clamp(1f - (cd / Math.Max(0.0001f, max)), 0f, 1f);
-                    int cdWidth = 100;
-                    int cdHeight = 8;
-                    var cdRect = new Rectangle(panelDest.X + 30, panelDest.Bottom + 20, (int)(cdWidth * pct), cdHeight);
-                    _spriteBatch.Draw(rectangleTexture, new Rectangle(panelDest.X + 30, panelDest.Bottom + 20, cdWidth, cdHeight), Color.Gray * 0.6f);
-                    _spriteBatch.Draw(rectangleTexture, cdRect, Color.Orange);
-                    _spriteBatch.DrawString(font, $"Spc CD: {Math.Ceiling(cd * 100) / 100}", new Vector2(panelDest.X + 30 + cdWidth + 8, panelDest.Bottom + 14), Color.White);
-                }
+                //if (specialAttackSkill != null)
+                //{
+                //    float cd = specialAttackSkill.CooldownTimer;
+                //    float max = specialAttackSkill.Cooldown;
+                //    float pct = Math.Clamp(1f - (cd / Math.Max(0.0001f, max)), 0f, 1f);
+                //    int cdWidth = 100;
+                //    int cdHeight = 8;
+                //    var cdRect = new Rectangle(panelDest.X + 30, panelDest.Bottom + 20, (int)(cdWidth * pct), cdHeight);
+                //    _spriteBatch.Draw(rectangleTexture, new Rectangle(panelDest.X + 30, panelDest.Bottom + 20, cdWidth, cdHeight), Color.Gray * 0.6f);
+                //    _spriteBatch.Draw(rectangleTexture, cdRect, Color.Orange);
+                //    _spriteBatch.DrawString(font, $"Spc CD: {Math.Ceiling(cd * 100) / 100}", new Vector2(panelDest.X + 30 + cdWidth + 8, panelDest.Bottom + 14), Color.White);
+                //}
 
                 // draw pause menu overlay when paused
                 if (gamePaused)

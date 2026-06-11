@@ -8,6 +8,7 @@ using Microsoft.Xna.Framework.Content;
 namespace spritesheet
 {
    
+    // UI button manager
     public class Buttons
     {
         private readonly Texture2D _atlas;
@@ -16,7 +17,6 @@ namespace spritesheet
         private readonly int _frameHeight;
         private readonly int _columns;
 
-        // Optional per-frame source rectangles (overrides uniform grid calculation).
         private readonly Dictionary<int, Rectangle>? _customSourceRects;
 
         private readonly List<Button> _buttons = new();
@@ -30,7 +30,6 @@ namespace spritesheet
             _customSourceRects = customSourceRects;
         }
 
-        
         public Buttons(Texture2D atlas, int rows, int columns)
         {
             _atlas = atlas ?? throw new ArgumentNullException(nameof(atlas));
@@ -40,7 +39,7 @@ namespace spritesheet
             _frameHeight = _atlas.Height / r;
         }
 
-       
+        // Construct from ContentManager
         public Buttons(ContentManager content, string assetName = "customButtons", int rows = 10, int columns = 4)
         {
             _atlas = content.Load<Texture2D>(assetName) ?? throw new ArgumentNullException(nameof(assetName));
@@ -50,6 +49,7 @@ namespace spritesheet
             _frameHeight = _atlas.Height / r;
         }
 
+        // API: create and manage buttons
         public Button Create(Rectangle bounds, int frameDefault, int frameHovered, int framePressed, Action onClick = null, string text = null)
         {
             var b = new Button(bounds, frameDefault, frameHovered, framePressed, onClick, text);
@@ -59,19 +59,17 @@ namespace spritesheet
 
         public void Remove(Button b) => _buttons.Remove(b);
 
+        // Update buttons (safe snapshot to avoid collection modification)
         public void Update(GameTime gameTime, MouseState currentMouse, MouseState previousMouse)
         {
-            // iterate over a snapshot so individual button OnClick handlers
-            // can safely add/remove buttons during Update without throwing
-            // CollectionModified exceptions.
             var snapshot = _buttons.ToArray();
             foreach (var b in snapshot)
                 b.Update(gameTime, currentMouse, previousMouse);
         }
 
+        // Draw all buttons
         public void Draw(SpriteBatch spriteBatch, SpriteFont font = null)
         {
-            // draw from a snapshot to avoid collection modification issues
             var snapshot = _buttons.ToArray();
             foreach (var b in snapshot)
                 b.Draw(spriteBatch, _atlas, _frameWidth, _frameHeight, _columns, font, _customSourceRects);
@@ -95,12 +93,11 @@ namespace spritesheet
         public bool Enabled = true;
 
         // Frame indices into the sprite-sheet atlas
-        // These should be set so that they correspond to the frame positions in your sheet
         public int FrameDefault = 4;
         public int FrameHovered = 3;
         public int FramePressed = 2;
 
-        // Optional: transition (animated) frames range and duration
+        // Transition animation range
         public int TransitionStart = -1; // set to -1 to disable
         public int TransitionEnd = -1;
         public float TransitionDuration = 0.5f; // seconds
@@ -119,7 +116,7 @@ namespace spritesheet
             Text = text;
         }
 
-        // Call every frame with the current and previous mouse states
+        // Update per-frame (mouse state driven)
         public void Update(GameTime gameTime, MouseState currentMouse, MouseState previousMouse)
         {
             if (!Enabled)
@@ -146,7 +143,7 @@ namespace spritesheet
                 if (contains)
                 {
                     OnClick?.Invoke();
-                    // if you want a transition animation on click, set state to Transition and reset timer
+                    // optional transition animation on click
                     if (TransitionStart >= 0) { _state = ButtonState.Transition; _transitionTimer = 0f; }
                     else _state = contains ? ButtonState.IsHovered : ButtonState.Default;
                 }
@@ -171,7 +168,7 @@ namespace spritesheet
             }
         }
 
-        // Draw the button using the atlas. Provide frame size and atlas columns to compute source rect.
+        // Draw the button using atlas frames
         public void Draw(SpriteBatch spriteBatch, Texture2D atlas, int frameWidth, int frameHeight, int columns, SpriteFont font = null, Dictionary<int, Rectangle>? customSourceRects = null)
         {
             // do not draw if button is disabled

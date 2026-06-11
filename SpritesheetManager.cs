@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace spritesheet
 {
+    // Manager that delegates draw calls to SpritesheetDraw instances
     public class SpritesheetManager
     {
         List<SpritesheetDraw> spritesheetDraw;

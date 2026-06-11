@@ -2,9 +2,7 @@ using System;
 
 namespace spritesheet
 {
-    // Simple coin/currency tracker. Keeps a running balance and exposes methods
-    // to add/spend coins. Fires an event when the balance changes so UI or
-    // game systems can react.
+    // Simple coin balance tracker with change notification
     public class Coin
     {
         public int Amount { get; private set; }
