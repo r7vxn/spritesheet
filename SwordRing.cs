@@ -22,6 +22,10 @@ namespace spritesheet
 
         private Texture2D pixel;
 
+        private const float drawScale = 2f;
+        
+        private static readonly Vector2 drawOffset = new Vector2(50f, 70f);
+
         public bool DebugEnabled { get; set; } = true;
         public bool IsActivePublic => isActive;
         public float CurrentCooldown => currentCooldown;
@@ -50,7 +54,10 @@ namespace spritesheet
             return false;
         }
 
-        public void Update(GameTime gameTime, Vector2 playerCenter, List<SlimeAnimationClass> slimes)
+        // now receives playerFacing so blades can orient relative to the character
+        private Vector2 lastPlayerFacing = new Vector2(0f, 1f);
+
+        public void Update(GameTime gameTime, Vector2 playerCenter, List<SlimeAnimationClass> slimes, Vector2 playerFacing)
         {
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
@@ -82,6 +89,8 @@ namespace spritesheet
                     }
                 }
 
+                // store last facing for use during draw
+                if (playerFacing != Vector2.Zero) lastPlayerFacing = Vector2.Normalize(playerFacing);
                 CheckCollisions(playerCenter, slimes);
             }
         }
@@ -90,23 +99,27 @@ namespace spritesheet
         {
             if (swordTex == null || slimes == null) return;
 
-            const float radius = 70f;
+            const float radius = 78f;
             int bladeW = swordTex.Width;
             int bladeH = swordTex.Height;
 
             Vector2 origin = new Vector2(bladeW * 0.5f, bladeH * 0.9f);
+            // scaled sizes and origin to match drawing with scale
+            int bladeWScaled = (int)(bladeW * drawScale);
+            int bladeHScaled = (int)(bladeH * drawScale);
+            Vector2 originScaled = origin * drawScale;
 
             for (int i = 0; i < 4; i++)
             {
                 float angle = rotationAngle + i * MathHelper.PiOver2;
                 Vector2 dir = new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle));
-                Vector2 bladePos = playerCenter + dir * radius;
+                Vector2 bladePos = playerCenter + dir * radius + drawOffset;
 
                 Rectangle bladeRect = new Rectangle(
-                    (int)(bladePos.X - origin.X),
-                    (int)(bladePos.Y - origin.Y),
-                    bladeW,
-                    bladeH);
+                    (int)(bladePos.X - originScaled.X),
+                    (int)(bladePos.Y - originScaled.Y),
+                    bladeWScaled,
+                    bladeHScaled);
 
                 foreach (var slime in slimes)
                 {
@@ -133,6 +146,7 @@ namespace spritesheet
             }
         }
 
+        // DrawSkill now uses the last known player facing to orient blades perpendicular to the character
         public void DrawSkill(SpriteBatch spriteBatch, Vector2 playerCenter)
         {
             if (!isActive || swordTex == null) return;
@@ -142,15 +156,22 @@ namespace spritesheet
             Vector2 origin = new Vector2(bladeW * 0.5f, bladeH * 0.9f);
             const float radius = 78f;
 
+            // base perpendicular direction to player's facing: rotate facing by 90 degrees
+            Vector2 perp = new Vector2(-lastPlayerFacing.Y, lastPlayerFacing.X);
+            // ensure perp is normalized
+            if (perp != Vector2.Zero) perp = Vector2.Normalize(perp);
+
             for (int i = 0; i < 4; i++)
             {
+                // place blades around the ring but align rotation to perp vector
                 float angle = rotationAngle + i * MathHelper.PiOver2;
                 Vector2 dir = new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle));
-                Vector2 bladePos = playerCenter + dir * radius;
+                Vector2 bladePos = playerCenter + dir * radius + drawOffset;
 
-                float drawRotation = angle + MathHelper.PiOver2;
+                // rotation that aligns the sprite to point away from the player (radial)
+                float drawRotation = (float)Math.Atan2(dir.Y, dir.X) + MathHelper.PiOver2;
 
-                spriteBatch.Draw(swordTex, bladePos, null, Color.White, drawRotation, origin, 1f, SpriteEffects.None, 0f);
+                spriteBatch.Draw(swordTex, bladePos, null, Color.White, drawRotation, origin, drawScale, SpriteEffects.None, 0f);
             }
         }
 

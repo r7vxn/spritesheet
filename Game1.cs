@@ -964,7 +964,7 @@ namespace spritesheet
                         swordRingSkill.Activate();
                     }
 
-                    swordRingSkill.Update(gameTime, playerLocation, slimes);
+                    swordRingSkill.Update(gameTime, playerLocation, slimes, playerDirection);
 
                     if (barrierEditMode)
                 {
